@@ -2,20 +2,22 @@ const isUndefined = (v) => v === undefined;
 
 const isNull = (v) => v === null;
 
-const isArray = (v) => Array.length(v);
+const isArray = (v) => Array.isArray(v);
 
-const isEmptyArray = (v) => isArray(v) && isUndefined(v[0]);
+const isArrayEmpty = (v) => {
+  return isArray(v) ? isUndefined(v[0]) : undefined;
+};
 
 const isObject = (v) => {
   return !isNull(v) && typeof v === "object";
 };
 
-const isEmptyObject = (v) => {
-  return isObject(v) && isEmptyArray(Object.values(v));
+const isObjectEmpty = (v) => {
+  return isObject(v) ? isArrayEmpty(Object.values(v)) : undefined;
 };
 
 const isEmpty = (v) => {
-  return [isUndefined, isNull, isEmptyArray, isEmptyObject].some((predicate) =>
+  return [isUndefined, isNull, isArrayEmpty, isObjectEmpty].some((predicate) =>
     predicate(v)
   );
 };
@@ -26,9 +28,11 @@ const stripLeadingTrailingQuotes = (str) => {
 
 module.exports = {
   isArray,
+  isArrayEmpty,
   isEmpty,
   isNull,
   isObject,
+  isObjectEmpty,
   isUndefined,
   stripLeadingTrailingQuotes,
 };

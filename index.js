@@ -20,7 +20,7 @@ const getEmbed = ({ message = "", title }) => {
 
 const bot = new Client();
 
-bot.on("ready", () => {
+bot.once("ready", () => {
   console.log("Bot ready");
 });
 
