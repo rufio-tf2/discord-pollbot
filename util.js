@@ -20,8 +20,8 @@ const isEmpty = (v) => {
   );
 };
 
-const stripQuotes = (str) => {
-  return str.replace(/['"]/g, "");
+const stripLeadingTrailingQuotes = (str) => {
+  return str.replace(/^['"]|['"]$/g, "");
 };
 
 module.exports = {
@@ -30,5 +30,5 @@ module.exports = {
   isNull,
   isObject,
   isUndefined,
-  stripQuotes,
+  stripLeadingTrailingQuotes,
 };
