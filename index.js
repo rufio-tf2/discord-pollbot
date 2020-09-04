@@ -14,7 +14,6 @@ const getEmbed = ({ message = "", title }) => {
   return {
     color: 0xcf5a00,
     description: message,
-    timestamp: new Date(),
     title,
   };
 };
