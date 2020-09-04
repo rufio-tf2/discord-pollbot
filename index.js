@@ -4,7 +4,7 @@ if (process.env.NODE_ENV !== "production") {
 
 const { Client, MessageEmbed } = require("discord.js");
 
-const { isUndefined, stripQuotes } = require("./util");
+const { isUndefined, stripLeadingTrailingQuotes } = require("./util");
 const getCountEmoji = require("./getCountEmoji");
 
 const TOKEN = process.env.DISCORD_TOKEN;
@@ -29,7 +29,7 @@ bot.on("message", async (message) => {
     ? message.content
         .trim()
         .match(/[^\s"']+|"([^"]*)"|'([^']*)'/g)
-        .map(stripQuotes)
+        .map(stripLeadingTrailingQuotes)
     : [];
 
   const isUsingBot = firstArg === PREFIX;
