@@ -7,6 +7,7 @@ const {
   isObjectEmpty,
   isUndefined,
   oxfordJoin,
+  parseMessageContents,
   splitAt,
   stripLeadingTrailingQuotes,
 } = require("./util");
@@ -132,10 +133,25 @@ describe("oxfordJoin", () => {
   test.each([
     [["apple", "orange", "plum"], `apple, orange, and plum`],
     [["apple"], `apple`],
+    [["apple", "orange"], `apple and orange`],
   ])("%s => %s", (arg, expected) => {
     const actual = oxfordJoin(arg);
 
     expect(actual).toEqual(expected);
+  });
+});
+
+describe("parseMessageContents", () => {
+  test("should preserve inner single quotes", () => {
+    const content = `!slap "Dave's kneecap"`;
+    const actual = parseMessageContents(content);
+    const expected = ["!slap", `"Dave's kneecap"`];
+  });
+
+  test("should preserve inner double quotes", () => {
+    const content = `!slap 'Whatever that "thing" was'`;
+    const actual = parseMessageContents(content);
+    const expected = ["!slap", `'Whatever that "thing" was'`];
   });
 });
 
