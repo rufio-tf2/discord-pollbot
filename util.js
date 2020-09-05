@@ -50,7 +50,7 @@ const splitAt = (arr, index) => {
 
 // ---
 
-const parseMessageContents = (content) => {
+const parseArgs = (content) => {
   return content
     ? content
         .trim()
@@ -90,6 +90,11 @@ const oxfordJoin = (arr) => {
   return lastPart ? `${parts.join(", ")}, and ${lastPart[0]}` : parts[0];
 };
 
+const splitFirstSpace = (str) => {
+  const [partOne, partTwo] = str.split(/ (.*)/);
+  return [partOne, partTwo];
+};
+
 const markdown = {
   bold,
   italicize,
@@ -109,8 +114,9 @@ module.exports = {
   mapString,
   markdown,
   oxfordJoin,
-  parseMessageContents,
+  parseArgs,
   splitAt,
+  splitFirstSpace,
   stripLeadingTrailingQuotes,
   underDash,
 };

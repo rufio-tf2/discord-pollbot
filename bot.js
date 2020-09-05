@@ -3,13 +3,7 @@ const { default: PQueue } = require("p-queue");
 
 const fs = require("./fileSystem");
 const getCountEmoji = require("./getCountEmoji");
-const {
-  markdown,
-  oxfordJoin,
-  parseMessageContents,
-  stripLeadingTrailingQuotes,
-  underDash,
-} = require("./util");
+const { markdown, parseArgs, splitFirstSpace, underDash } = require("./util");
 
 const promiseQueue = new PQueue({ concurrency: 1 });
 
@@ -86,13 +80,11 @@ const handlePoll = async (message, args) => {
   }
 };
 
-const handleSlap = async (message, targets) => {
-  const hasTargets = targets.length > 0;
+const handleSlap = async (message, target) => {
+  const hasTarget = target.length > 0;
 
-  if (hasTargets) {
-    message.channel.send(
-      markdown.italicize(`SlapBot slaps ${oxfordJoin(targets)}.`)
-    );
+  if (hasTarget) {
+    message.channel.send(markdown.italicize(`SlapBot slaps ${target}.`));
   } else {
     const helpMessage = await loadSlapHelpMessage();
 
@@ -106,15 +98,17 @@ const handleSlap = async (message, targets) => {
 };
 
 const delegateTask = (message) => {
-  const [firstArg, ...args] = parseMessageContents(message.content);
+  const [firstArg, restMessage] = splitFirstSpace(message.content);
+  const normalizedFirstArg = firstArg.toLowerCase();
 
-  const isPoll = POLL_PREFIXES.includes(firstArg);
-  const isSlap = SLAP_PREFIXES.includes(firstArg);
+  const isPoll = POLL_PREFIXES.includes(normalizedFirstArg);
+  const isSlap = SLAP_PREFIXES.includes(normalizedFirstArg);
 
   if (isPoll) {
+    const args = parseArgs(restMessage);
     handlePoll(message, args);
   } else if (isSlap) {
-    handleSlap(message, args);
+    handleSlap(message, restMessage);
   } else {
     return;
   }

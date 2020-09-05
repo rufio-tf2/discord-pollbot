@@ -7,8 +7,9 @@ const {
   isObjectEmpty,
   isUndefined,
   oxfordJoin,
-  parseMessageContents,
+  parseArgs,
   splitAt,
+  splitFirstSpace,
   stripLeadingTrailingQuotes,
 } = require("./util");
 
@@ -129,6 +130,17 @@ describe("splitAt", () => {
   });
 });
 
+describe("splitFirstSpace", () => {
+  test.each([
+    [`!slap abc def g`, ["!slap", "abc def g"]],
+    //
+  ])("%s => %s", (str, expected) => {
+    const actual = splitFirstSpace(str);
+
+    expect(actual).toEqual(expected);
+  });
+});
+
 describe("oxfordJoin", () => {
   test.each([
     [["apple", "orange", "plum"], `apple, orange, and plum`],
@@ -141,17 +153,28 @@ describe("oxfordJoin", () => {
   });
 });
 
-describe("parseMessageContents", () => {
+describe("parseArgs", () => {
   test("should preserve inner single quotes", () => {
-    const content = `!slap "Dave's kneecap"`;
-    const actual = parseMessageContents(content);
-    const expected = ["!slap", `"Dave's kneecap"`];
+    const args = `"Dave's kneecap"`;
+    const actual = parseArgs(args);
+    const expected = [`"Dave's kneecap"`];
   });
 
   test("should preserve inner double quotes", () => {
-    const content = `!slap 'Whatever that "thing" was'`;
-    const actual = parseMessageContents(content);
-    const expected = ["!slap", `'Whatever that "thing" was'`];
+    const args = `'Whatever that "thing" was'`;
+    const actual = parseArgs(args);
+    const expected = [`'Whatever that "thing" was'`];
+  });
+
+  test.each([
+    [
+      `"This is a poll" "This is option A" 'Option B' OptionC`,
+      ["This is a poll", "This is option A", "Option B", "OptionC"],
+    ],
+  ])("should split args", (arg, expected) => {
+    const actual = parseArgs(arg);
+    console.log("actual", actual);
+    expect(actual).toEqual(expected);
   });
 });
 
