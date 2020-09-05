@@ -23,6 +23,7 @@
     "npm": "*"
   },
   "scripts": {
+    "deploy": "git push heroku master",
     "start": "node index.js",
     "test": "jest"
   },
