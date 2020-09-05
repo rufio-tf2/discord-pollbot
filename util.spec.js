@@ -6,6 +6,8 @@ const {
   isObject,
   isObjectEmpty,
   isUndefined,
+  oxfordJoin,
+  splitAt,
   stripLeadingTrailingQuotes,
 } = require("./util");
 
@@ -27,10 +29,10 @@ describe("isArrayEmpty", () => {
   test.each([
     [[], true],
     [[1, 2, 3], false],
-    [{}, undefined],
-    ["words", undefined],
-    [1234, undefined],
-    [true, undefined],
+    [{}, false],
+    ["words", false],
+    [1234, false],
+    [true, false],
   ])("%s => %s", (arg, expected) => {
     const actual = isArrayEmpty(arg);
 
@@ -108,6 +110,31 @@ describe("isUndefined", () => {
     [true, false],
   ])("%s => %s", (arg, expected) => {
     const actual = isUndefined(arg);
+
+    expect(actual).toEqual(expected);
+  });
+});
+
+describe("splitAt", () => {
+  test.each([
+    [
+      [["apple", "orange", "plum"], -1],
+      [["apple", "orange"], ["plum"]],
+    ],
+    // save
+  ])("%s => %s", (args, expected) => {
+    const actual = splitAt(...args);
+
+    expect(actual).toEqual(expected);
+  });
+});
+
+describe("oxfordJoin", () => {
+  test.each([
+    [["apple", "orange", "plum"], `apple, orange, and plum`],
+    [["apple"], `apple`],
+  ])("%s => %s", (arg, expected) => {
+    const actual = oxfordJoin(arg);
 
     expect(actual).toEqual(expected);
   });
