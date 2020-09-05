@@ -54,16 +54,8 @@ bot.on("message", async (message) => {
       let optionPairs;
       let embedText;
 
-      if (isYesNo) {
-        optionPairs = [
-          ["👍", "Yes"],
-          ["👎", "No"],
-        ];
-      } else if (isTrueFalse) {
-        optionPairs = [
-          ["✅", "True"],
-          ["❌", "False"],
-        ];
+      if (isYesNo || isTrueFalse) {
+        optionPairs = [["✅"], ["❌"]];
       } else {
         optionPairs = pollOptions.map((option, index) => [
           getCountEmoji(index + 1),
