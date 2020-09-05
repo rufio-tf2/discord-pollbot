@@ -61,15 +61,15 @@ const handlePoll = async (message, args) => {
         .join("\n");
     }
 
-    const embedContents = getEmbed({
-      message: embedText,
-      title: pollPrompt,
-    });
-
-    const pollEmbed = await message.channel.send(embedContents);
+    const pollEmbed = await message.channel.send(
+      getEmbed({
+        message: embedText,
+        title: pollPrompt,
+      })
+    );
 
     promiseQueue.addAll(
-      optionPairs.map(([emoji], index) => async () => {
+      optionPairs.map(([emoji]) => async () => {
         await pollEmbed.react(emoji);
       })
     );
@@ -89,10 +89,9 @@ const handleSlap = async (message, targets) => {
   const hasTargets = targets.length > 0;
 
   if (hasTargets) {
-    const contents = markdown.italicize(
-      `SlapBot slaps ${oxfordJoin(targets)}.`
+    message.channel.send(
+      markdown.italicize(`SlapBot slaps ${oxfordJoin(targets)}.`)
     );
-    message.channel.send(contents);
   } else {
     const helpMessage = await loadSlapHelpMessage();
 
