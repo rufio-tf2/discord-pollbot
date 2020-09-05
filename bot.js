@@ -5,18 +5,16 @@ const fs = require("./fileSystem");
 const getCountEmoji = require("./getCountEmoji");
 const {
   isUndefined,
-  mapString,
+  markdown,
+  oxfordJoin,
   stripLeadingTrailingQuotes,
+  underDash,
 } = require("./util");
 
 const promiseQueue = new PQueue({ concurrency: 1 });
 
 const POLL_PREFIXES = ["!poll", "!p"];
 const SLAP_PREFIXES = ["!slap", "!s"];
-
-const underDash = (str) => {
-  return `${str}\n${mapString(str, (char) => "-")}`;
-};
 
 const loadPollHelpMessage = () => {
   return fs.readFile("./helpMessages/PollHelpMessage.md", "utf8");
@@ -83,7 +81,10 @@ const handlePoll = async (message, args) => {
   }
 };
 
-const handleSlap = (message, targets) => {};
+const handleSlap = (message, targets) => {
+  const contents = markdown.italicize(`SlapBot slaps ${oxfordJoin(targets)}.`);
+  message.channel.send(contents);
+};
 
 const delegateTask = (message) => {
   const [firstArg, ...args] = message.content
