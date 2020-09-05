@@ -1,5 +1,3 @@
-**Commands**
-
 `!poll [prompt] [option1] [option2] [...]`
 `!p [prompt] [option1] [option2] [...]`
 
