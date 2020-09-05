@@ -80,7 +80,7 @@ const handlePoll = async (message, args) => {
   }
 };
 
-const handleSlap = async (message, target) => {
+const handleSlap = async (message, target = "") => {
   const hasTarget = target.length > 0;
 
   if (hasTarget) {
