@@ -31,6 +31,10 @@ const isEmpty = (v) => {
   ].some((predicate) => predicate(v));
 };
 
+const mapString = (str, fn) => {
+  return str.split("").map(fn).join("");
+};
+
 const stripLeadingTrailingQuotes = (str) => {
   return str.replace(/^['"]|['"]$/g, "");
 };
@@ -43,5 +47,6 @@ module.exports = {
   isObject,
   isObjectEmpty,
   isUndefined,
+  mapString,
   stripLeadingTrailingQuotes,
 };
