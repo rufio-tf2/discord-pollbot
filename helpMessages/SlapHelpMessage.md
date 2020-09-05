@@ -1,6 +1,4 @@
-`!slap [target1] [target2] [...]`
-`!s [target1] [target2] [...]`
+`!slap [phrase]`
 
-Surround multiple words with single or double quotes:
-
-`!s "Dave's kneecap" 'Whatever that "thing" was'`
+Example:
+`!slap Dave's knee caps`
