@@ -1,3 +1,8 @@
+const isBoolean = (v) => {
+  return typeof v === "boolean";
+  s;
+};
+
 const isUndefined = (v) => v === undefined;
 
 const isNull = (v) => v === null;
@@ -5,7 +10,7 @@ const isNull = (v) => v === null;
 const isArray = (v) => Array.isArray(v);
 
 const isArrayEmpty = (v) => {
-  return isArray(v) ? isUndefined(v[0]) : undefined;
+  return isArray(v) ? v.length === 0 : undefined;
 };
 
 const isObject = (v) => {
@@ -17,9 +22,13 @@ const isObjectEmpty = (v) => {
 };
 
 const isEmpty = (v) => {
-  return [isUndefined, isNull, isArrayEmpty, isObjectEmpty].some((predicate) =>
-    predicate(v)
-  );
+  return [
+    Boolean,
+    isUndefined,
+    isNull,
+    isArrayEmpty,
+    isObjectEmpty,
+  ].some((predicate) => predicate(v));
 };
 
 const stripLeadingTrailingQuotes = (str) => {
