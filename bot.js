@@ -4,7 +4,6 @@ const { default: PQueue } = require("p-queue");
 const fs = require("./fileSystem");
 const getCountEmoji = require("./getCountEmoji");
 const {
-  isUndefined,
   markdown,
   oxfordJoin,
   stripLeadingTrailingQuotes,
@@ -20,6 +19,10 @@ const loadPollHelpMessage = () => {
   return fs.readFile("./helpMessages/PollHelpMessage.md", "utf8");
 };
 
+const loadSlapHelpMessage = () => {
+  return fs.readFile("./helpMessages/SlapHelpMessage.md", "utf8");
+};
+
 const getEmbed = ({ message = "", title }) => {
   return {
     embed: {
@@ -31,10 +34,11 @@ const getEmbed = ({ message = "", title }) => {
 };
 
 const handlePoll = async (message, args) => {
-  const [pollPrompt, ...pollOptions] = args;
-  const hasArgs = !isUndefined(pollPrompt);
+  const hasArgs = args.length > 0;
 
   if (hasArgs) {
+    const [pollPrompt, ...pollOptions] = args;
+
     const isBoolean =
       pollOptions.length <= 2 &&
       pollOptions.some((option) =>
@@ -70,20 +74,35 @@ const handlePoll = async (message, args) => {
       })
     );
   } else {
-    const pollHelpMessage = await loadPollHelpMessage();
+    const helpMessage = await loadPollHelpMessage();
 
     message.channel.send(
       getEmbed({
-        message: pollHelpMessage,
-        title: underDash("Poll Help"),
+        message: helpMessage,
+        title: underDash("Poll Command"),
       })
     );
   }
 };
 
-const handleSlap = (message, targets) => {
-  const contents = markdown.italicize(`SlapBot slaps ${oxfordJoin(targets)}.`);
-  message.channel.send(contents);
+const handleSlap = async (message, targets) => {
+  const hasTargets = targets.length > 0;
+
+  if (hasTargets) {
+    const contents = markdown.italicize(
+      `SlapBot slaps ${oxfordJoin(targets)}.`
+    );
+    message.channel.send(contents);
+  } else {
+    const helpMessage = await loadSlapHelpMessage();
+
+    message.channel.send(
+      getEmbed({
+        message: helpMessage,
+        title: underDash(`Slap Command`),
+      })
+    );
+  }
 };
 
 const delegateTask = (message) => {

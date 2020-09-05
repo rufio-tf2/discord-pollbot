@@ -121,7 +121,6 @@ describe("splitAt", () => {
       [["apple", "orange", "plum"], -1],
       [["apple", "orange"], ["plum"]],
     ],
-    // save
   ])("%s => %s", (args, expected) => {
     const actual = splitAt(...args);
 
