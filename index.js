@@ -39,22 +39,16 @@ bot.on("message", async (message) => {
     const hasArgs = !isUndefined(pollPrompt);
 
     if (hasArgs) {
-      const isYesNo =
+      const isBoolean =
         pollOptions.length <= 2 &&
         pollOptions.some((option) =>
-          ["yes", "no"].includes(option.toLowerCase())
-        );
-
-      const isTrueFalse =
-        pollOptions.length <= 2 &&
-        pollOptions.some((option) =>
-          ["true", "false"].includes(option.toLowerCase())
+          ["yes", "no", "true", "false"].includes(option.toLowerCase())
         );
 
       let optionPairs;
       let embedText;
 
-      if (isYesNo || isTrueFalse) {
+      if (isBoolean) {
         optionPairs = [["✅"], ["❌"]];
       } else {
         optionPairs = pollOptions.map((option, index) => [
