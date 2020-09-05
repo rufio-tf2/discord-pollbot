@@ -3,4 +3,4 @@
 
 Surround multiple words with single or double quotes:
 
-`!s 'Nice People' "Mean People"`
+`!s "Dave's kneecap" 'Whatever that "thing" was'`

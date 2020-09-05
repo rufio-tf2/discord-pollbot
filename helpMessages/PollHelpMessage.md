@@ -3,4 +3,4 @@
 
 Surround multiple words with single or double quotes:
 
-`!p "Do you like fun?" "Let's do it" 'Not so sure though'`
+`!p "Do you like fun?" "Let's do it" 'Whatever that "thing" was'`

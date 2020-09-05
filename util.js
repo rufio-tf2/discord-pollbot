@@ -50,6 +50,15 @@ const splitAt = (arr, index) => {
 
 // ---
 
+const parseMessageContents = (content) => {
+  return content
+    ? content
+        .trim()
+        .match(/[^\s"']+|"([^"]*)"|'([^']*)'/g)
+        .map(stripLeadingTrailingQuotes)
+    : [];
+};
+
 const mapString = (str, fn) => {
   return str.split("").map(fn).join("");
 };
@@ -71,7 +80,11 @@ const bold = (str) => {
 };
 
 const oxfordJoin = (arr) => {
-  if (arr.length < 2) return arr[0];
+  if (arr.length < 2) {
+    return arr[0];
+  } else if (arr.length === 2) {
+    return arr.join(" and ");
+  }
 
   const [parts, lastPart] = splitAt(arr, -1);
   return lastPart ? `${parts.join(", ")}, and ${lastPart[0]}` : parts[0];
@@ -96,6 +109,7 @@ module.exports = {
   mapString,
   markdown,
   oxfordJoin,
+  parseMessageContents,
   splitAt,
   stripLeadingTrailingQuotes,
   underDash,

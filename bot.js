@@ -6,6 +6,7 @@ const getCountEmoji = require("./getCountEmoji");
 const {
   markdown,
   oxfordJoin,
+  parseMessageContents,
   stripLeadingTrailingQuotes,
   underDash,
 } = require("./util");
@@ -105,12 +106,7 @@ const handleSlap = async (message, targets) => {
 };
 
 const delegateTask = (message) => {
-  const [firstArg, ...args] = message.content
-    ? message.content
-        .trim()
-        .match(/[^\s"']+|"([^"]*)"|'([^']*)'/g)
-        .map(stripLeadingTrailingQuotes)
-    : [];
+  const [firstArg, ...args] = parseMessageContents(message.content);
 
   const isPoll = POLL_PREFIXES.includes(firstArg);
   const isSlap = SLAP_PREFIXES.includes(firstArg);
