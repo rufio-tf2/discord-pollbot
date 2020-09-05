@@ -22,7 +22,6 @@ describe("isArray", () => {
     [true, false],
   ])("%s => %s", (arg, expected) => {
     const actual = isArray(arg);
-
     expect(actual).toEqual(expected);
   });
 });
@@ -37,7 +36,6 @@ describe("isArrayEmpty", () => {
     [true, false],
   ])("%s => %s", (arg, expected) => {
     const actual = isArrayEmpty(arg);
-
     expect(actual).toEqual(expected);
   });
 });
@@ -56,7 +54,6 @@ describe("isEmpty", () => {
     ["words", false],
   ])("%s => %s", (arg, expected) => {
     const actual = isEmpty(arg);
-
     expect(actual).toEqual(expected);
   });
 });
@@ -71,7 +68,6 @@ describe("isNull", () => {
     [true, false],
   ])("%s => %s", (arg, expected) => {
     const actual = isNull(arg);
-
     expect(actual).toEqual(expected);
   });
 });
@@ -86,7 +82,6 @@ describe("isObject", () => {
     [true, false],
   ])("%s => %s", (arg, expected) => {
     const actual = isObject(arg);
-
     expect(actual).toEqual(expected);
   });
 });
@@ -97,7 +92,6 @@ describe("isObjectEmpty", () => {
     [{ a: 1 }, false],
   ])("%s => %s", (arg, expected) => {
     const actual = isObjectEmpty(arg);
-
     expect(actual).toEqual(expected);
   });
 });
@@ -112,7 +106,6 @@ describe("isUndefined", () => {
     [true, false],
   ])("%s => %s", (arg, expected) => {
     const actual = isUndefined(arg);
-
     expect(actual).toEqual(expected);
   });
 });
@@ -125,7 +118,6 @@ describe("splitAt", () => {
     ],
   ])("%s => %s", (args, expected) => {
     const actual = splitAt(...args);
-
     expect(actual).toEqual(expected);
   });
 });
@@ -136,7 +128,6 @@ describe("splitFirstSpace", () => {
     //
   ])("%s => %s", (str, expected) => {
     const actual = splitFirstSpace(str);
-
     expect(actual).toEqual(expected);
   });
 });
@@ -148,7 +139,6 @@ describe("oxfordJoin", () => {
     [["apple", "orange"], `apple and orange`],
   ])("%s => %s", (arg, expected) => {
     const actual = oxfordJoin(arg);
-
     expect(actual).toEqual(expected);
   });
 });
@@ -173,7 +163,6 @@ describe("parseArgs", () => {
     ],
   ])("should split args", (arg, expected) => {
     const actual = parseArgs(arg);
-    console.log("actual", actual);
     expect(actual).toEqual(expected);
   });
 });
@@ -185,7 +174,6 @@ describe("stripLeadingTrailingQuotes", () => {
     [`"leaves inner 'quotes'"`, `leaves inner 'quotes'`],
   ])("%s => %s", (arg, expected) => {
     const actual = stripLeadingTrailingQuotes(arg);
-
     expect(actual).toEqual(expected);
   });
 });
