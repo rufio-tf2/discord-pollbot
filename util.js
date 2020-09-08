@@ -1,3 +1,7 @@
+const getRandomInt = (max) => {
+  return Math.floor(Math.random() * Math.floor(max));
+};
+
 const isBoolean = (v) => {
   return typeof v === "boolean";
 };
@@ -100,11 +104,46 @@ const markdown = {
   italicize,
 };
 
+const includesPair = (arr, [key, value]) => {
+  return !!arr.find(([k, v]) => {
+    return k === key && v === value;
+  });
+};
+
+const isInRange = (number, minInclusive, maxInclusive) => {
+  return number >= minInclusive && number <= maxInclusive;
+};
+
+const randomFromBag = (pairs) => {
+  if (pairs.length === 0) return;
+
+  const total = pairs.reduce((sum, [, value]) => {
+    return sum + value;
+  }, 0);
+
+  const map = pairs.reduce((acc, [key, count]) => {
+    const max = Math.round(count / total) * 100;
+    return [...acc, { count, key, max }];
+  }, []);
+
+  const randomIndex = getRandomInt(100);
+
+  for (let i = 0; i < map.length; i += 1) {
+    const { count, key, max } = map[i];
+
+    if (randomIndex < max) {
+      return [key, count - 1];
+    }
+  }
+};
+
 module.exports = {
+  includesPair,
   isArray,
   isArrayEmpty,
   isBoolean,
   isEmpty,
+  isInRange,
   isNull,
   isObject,
   isObjectEmpty,
@@ -115,6 +154,7 @@ module.exports = {
   markdown,
   oxfordJoin,
   parseArgs,
+  randomFromBag,
   splitAt,
   splitFirstSpace,
   stripLeadingTrailingQuotes,

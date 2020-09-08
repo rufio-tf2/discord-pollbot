@@ -1,13 +1,16 @@
 const {
+  includesPair,
   isArray,
   isArrayEmpty,
   isEmpty,
+  isInRange,
   isNull,
   isObject,
   isObjectEmpty,
   isUndefined,
   oxfordJoin,
   parseArgs,
+  randomFromBag,
   splitAt,
   splitFirstSpace,
   stripLeadingTrailingQuotes,
@@ -96,6 +99,19 @@ describe("isObjectEmpty", () => {
   });
 });
 
+describe("isInRange", () => {
+  test.each([
+    [[1, 0, 2], true],
+    [[0, 0, 2], true],
+    [[2, 0, 2], true],
+    [[3, 0, 2], false],
+    [[-1, 0, 2], false],
+  ])("%s => %s", (args, expected) => {
+    const actual = isInRange(...args);
+    expect(actual).toEqual(expected);
+  });
+});
+
 describe("isUndefined", () => {
   test.each([
     [undefined, true],
@@ -119,6 +135,29 @@ describe("splitAt", () => {
   ])("%s => %s", (args, expected) => {
     const actual = splitAt(...args);
     expect(actual).toEqual(expected);
+  });
+});
+
+describe("randomFromBag", () => {
+  test("pulls one", () => {
+    const actual = randomFromBag([["Black", 1]]);
+    const expected = ["Black", 0];
+    expect(actual).toEqual(expected);
+  });
+
+  test("pulls one of", () => {
+    const actual = randomFromBag([
+      ["Black", 1],
+      ["Blue", 1],
+    ]);
+    const expected = [
+      ["Black", 0],
+      ["Blue", 0],
+    ];
+
+    const matchFound = includesPair(expected, actual);
+
+    expect(matchFound).toBe(true);
   });
 });
 
