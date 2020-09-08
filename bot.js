@@ -2,7 +2,7 @@ const { MessageEmbed } = require("discord.js");
 const { default: PQueue } = require("p-queue");
 
 const fs = require("./fileSystem");
-const getCountEmoji = require("./getCountEmoji");
+const { emojisByKey, getCountEmoji } = require("./getCountEmoji");
 const {
   endsWithPunctuation,
   markdown,
@@ -16,6 +16,8 @@ const promiseQueue = new PQueue({ concurrency: 1 });
 const POLL_PREFIXES = ["!poll", "!p"];
 const SLAP_PREFIXES = ["!slap", "!s"];
 
+const booleanPairs = [["✅"], ["❌"]];
+
 const loadPollHelpMessage = () => {
   return fs.readFile("./helpMessages/PollHelpMessage.md", "utf8");
 };
@@ -24,12 +26,19 @@ const loadSlapHelpMessage = () => {
   return fs.readFile("./helpMessages/SlapHelpMessage.md", "utf8");
 };
 
-const getEmbed = ({ message = "", title }) => {
+const getEmbed = ({ footer, message = "", title }) => {
+  const footerObject = footer
+    ? {
+        text: footer,
+      }
+    : null;
+
   return {
     embed: {
       color: 0xcf5a00,
       description: message,
       title,
+      footer: footerObject,
     },
   };
 };
@@ -40,17 +49,29 @@ const handlePoll = async (message, args) => {
   if (hasArgs) {
     const [pollPrompt, ...pollOptions] = args;
 
-    const isBoolean =
+    const isYesNo =
+      pollOptions.length <= 3 &&
+      pollOptions.some((option) =>
+        ["yes", "no", "maybe"].includes(option.toLowerCase())
+      );
+
+    const isTrueFalse =
       pollOptions.length <= 2 &&
       pollOptions.some((option) =>
-        ["yes", "no", "true", "false"].includes(option.toLowerCase())
+        ["true", "false"].includes(option.toLowerCase())
       );
 
     let optionPairs;
     let embedText;
 
-    if (isBoolean) {
-      optionPairs = [["✅"], ["❌"]];
+    if (isTrueFalse) {
+      optionPairs = booleanPairs;
+    } else if (isYesNo) {
+      const includeMaybe = pollOptions.some((option) =>
+        ["maybe"].includes(option.toLowerCase())
+      );
+
+      optionPairs = includeMaybe ? [...booleanPairs, ["❔"]] : booleanPairs;
     } else {
       optionPairs = pollOptions.map((option, index) => [
         getCountEmoji(index + 1),
