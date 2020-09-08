@@ -1,4 +1,5 @@
 const {
+  endsWithPunctuation,
   includesPair,
   isArray,
   isArrayEmpty,
@@ -122,6 +123,18 @@ describe("isUndefined", () => {
     [true, false],
   ])("%s => %s", (arg, expected) => {
     const actual = isUndefined(arg);
+    expect(actual).toEqual(expected);
+  });
+});
+
+describe("endsWithPunctuation", () => {
+  test.each([
+    ["Ends with punctuation.", true],
+    ["Ends with punctuation?", true],
+    ["Ends with punctuation!", true],
+    ["Ends with punctuation", false],
+  ])("%s => %s", (arg, expected) => {
+    const actual = endsWithPunctuation(arg);
     expect(actual).toEqual(expected);
   });
 });

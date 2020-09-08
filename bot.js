@@ -3,7 +3,13 @@ const { default: PQueue } = require("p-queue");
 
 const fs = require("./fileSystem");
 const getCountEmoji = require("./getCountEmoji");
-const { markdown, parseArgs, splitFirstSpace, underDash } = require("./util");
+const {
+  endsWithPunctuation,
+  markdown,
+  parseArgs,
+  splitFirstSpace,
+  underDash,
+} = require("./util");
 
 const promiseQueue = new PQueue({ concurrency: 1 });
 
@@ -84,7 +90,9 @@ const handleSlap = async (message, target = "") => {
   const hasTarget = target.length > 0;
 
   if (hasTarget) {
-    message.channel.send(markdown.italicize(`SlapBot slaps ${target}.`));
+    const punctuation = endsWithPunctuation(target) ? "" : ".";
+    const slapMessage = `SlapBot slaps ${target}${punctuation}`;
+    message.channel.send(markdown.italicize(slapMessage));
   } else {
     const helpMessage = await loadSlapHelpMessage();
 

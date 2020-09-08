@@ -52,6 +52,11 @@ const splitAt = (arr, index) => {
   return [arr.slice(0, index), arr.slice(index)];
 };
 
+const endsWithPunctuation = (str = "") => {
+  const punctuation = [".", "!", "?"];
+  return punctuation.some((punc) => str.endsWith(punc));
+};
+
 // ---
 
 const parseArgs = (content) => {
@@ -138,6 +143,7 @@ const randomFromBag = (pairs) => {
 };
 
 module.exports = {
+  endsWithPunctuation,
   includesPair,
   isArray,
   isArrayEmpty,
