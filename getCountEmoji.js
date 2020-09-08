@@ -40,6 +40,9 @@ const emojisByKey = {
   "*": "*️⃣",
   "!": "❗",
   "?": "❓",
+  yes: "✅",
+  no: "❌",
+  maybe: "❔",
 };
 
 const digitToWord = {
@@ -86,4 +89,4 @@ const getCountEmoji = (num) => {
   return `${emojisByKey[digitToWord[num]]}`;
 };
 
-module.exports = getCountEmoji;
+module.exports = { emojisByKey, getCountEmoji };
