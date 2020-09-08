@@ -142,6 +142,13 @@ const randomFromBag = (pairs) => {
   }
 };
 
+let uid = 0;
+const uniqueId = (prefix) => {
+  const result = prefix ? `${prefix}-${uid}` : uid;
+  uid += 1;
+  return result;
+};
+
 module.exports = {
   endsWithPunctuation,
   includesPair,
@@ -165,4 +172,5 @@ module.exports = {
   splitFirstSpace,
   stripLeadingTrailingQuotes,
   underDash,
+  uniqueId,
 };
