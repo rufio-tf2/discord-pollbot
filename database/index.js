@@ -67,12 +67,6 @@ const addVote = async ({ id, message, voteOption, username }) => {
       : [...currentListOfNames, username],
   };
 
-  console.log("@@ADD_VOTE", {
-    ...currentPoll,
-    options: updatedOptionsCount,
-    votes: updatedVotes,
-  });
-
   return setPoll(id, message, {
     ...currentPoll,
     options: updatedOptionsCount,
@@ -107,12 +101,6 @@ const removeVote = async ({ id, message, voteOption, username }) => {
       return [category, listOfNames];
     })
     .filter(Boolean);
-
-  console.log("@@REMOVE_VOTE", {
-    ...currentPoll,
-    options: updatedOptionsCount,
-    votes: Object.fromEntries(updatedVotePairs),
-  });
 
   return setPoll(id, message, {
     ...currentPoll,
