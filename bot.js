@@ -15,7 +15,7 @@ const {
 
 const POLL_PREFIXES = ["!poll", "!p"];
 const SLAP_PREFIXES = ["!slap"];
-// const JOIN_EMOJI_OPTION_TOKEN = " - ";
+const POLL_DIVIDER = "-----";
 const OPTION_SCHEMA = /^(?<emoji>.*) - (?<option>.*) \((?<count>.*)\)$/;
 
 const promiseQueue = new PQueue({ concurrency: 1 });
@@ -43,8 +43,9 @@ const getEmbed = ({ fields, footer, description = "", title }) => {
     embed: {
       color: 0xcf5a00,
       description,
-      title,
+      fields,
       footer: footerObject,
+      title,
     },
   };
 };
@@ -170,39 +171,92 @@ const onMessage = (message) => {
 };
 
 const parseDescription = (description = "") => {
-  return description
-    .split("\n")
-    .map((option) => Array.from(option.match(OPTION_SCHEMA).slice(1)));
+  return description.split("\n").map((option) => {
+    return Array.from(option.match(OPTION_SCHEMA).slice(1));
+  });
 };
 
-// const parseField =
+const updateFieldRemove = (itemToRemove, category, fields) => {
+  return fields
+    .map((field) => {
+      if (field.name === category) {
+        const currentList = field.value.split("\n");
+        const updatedList = currentList.filter((item) => item !== itemToRemove);
 
-const onChangeReaction = async (reaction, user) => {
+        return updatedList.length > 0
+          ? {
+              name: field.name,
+              value: updatedList.join("\n"),
+            }
+          : false;
+      }
+
+      return field;
+    })
+    .filter(Boolean);
+};
+
+const updateFieldAdd = (itemToAdd, category, fields) => {
+  if (fields.some(({ name }) => name === category)) {
+    return fields.map((field) => {
+      if (field.name === category) {
+        const currentList = field.value.split("\n");
+        const updatedList = currentList.includes(itemToAdd)
+          ? currentList
+          : [...currentList, itemToAdd];
+
+        return {
+          name: field.name,
+          value: updatedList.join("\n"),
+        };
+      }
+
+      return field;
+    });
+  }
+
+  return [
+    ...fields,
+    {
+      name: category,
+      value: itemToAdd,
+    },
+  ];
+};
+
+const onChangeReaction = async (reaction, user, action) => {
   const message = reaction.message;
   const currentEmbed = message.embeds[0];
 
-  reaction.emoji && console.log(reaction.emoji);
+  if (user.username !== message.author.username) {
+    if (storage.includesValue(message)) {
+      const currentOptionPairs = parseDescription(currentEmbed.description);
 
-  if (storage.includesValue(message)) {
-    const currentOptionPairs = parseDescription(currentEmbed.description);
+      const updatedDescription = currentOptionPairs
+        .map(([emoji, option, oldCount]) => {
+          const newCount =
+            reaction.emoji.name === emoji ? reaction.count - 1 : oldCount;
+          return toPairText([emoji, option, newCount]);
+        })
+        .join("\n");
 
-    const updatedDescription = currentOptionPairs
-      .map(([emoji, option, oldCount]) => {
-        const newCount =
-          reaction.emoji.name === emoji ? reaction.count - 1 : oldCount;
-        return toPairText([emoji, option, newCount]);
-      })
-      .join("\n");
+      const currentFields = currentEmbed.fields;
 
-    // const currentFieldPairs = parseField();
+      const updatedFields =
+        action === "remove"
+          ? updateFieldRemove(user.username, reaction.emoji.name, currentFields)
+          : updateFieldAdd(user.username, reaction.emoji.name, currentFields);
 
-    await message.edit(
-      getEmbed({
-        ...currentEmbed,
-        description: updatedDescription,
-        // fields,
-      })
-    );
+      await message.edit(
+        getEmbed({
+          ...currentEmbed,
+          description: updatedDescription,
+          fields: updatedFields.sort((fieldA, fieldB) => {
+            return fieldA.name.localeCompare(fieldB.name);
+          }),
+        })
+      );
+    }
   }
 };
 

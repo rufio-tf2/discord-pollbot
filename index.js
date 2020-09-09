@@ -19,11 +19,11 @@ client.on("message", (message) => {
 });
 
 client.on("messageReactionAdd", (reaction, user) => {
-  onChangeReaction(reaction, user);
+  onChangeReaction(reaction, user, "add");
 });
 
 client.on("messageReactionRemove", (reaction, user) => {
-  onChangeReaction(reaction, user);
+  onChangeReaction(reaction, user, "remove");
 });
 
 client.login(TOKEN);
