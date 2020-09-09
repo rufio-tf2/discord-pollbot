@@ -9,9 +9,11 @@ const {
   isObject,
   isObjectEmpty,
   isUndefined,
+  minutesToMilliseconds,
   oxfordJoin,
   parseArgs,
   randomFromBag,
+  secondsToMilliseconds,
   splitAt,
   splitFirstSpace,
   stripLeadingTrailingQuotes,
@@ -226,6 +228,26 @@ describe("stripLeadingTrailingQuotes", () => {
     [`"leaves inner 'quotes'"`, `leaves inner 'quotes'`],
   ])("%s => %s", (arg, expected) => {
     const actual = stripLeadingTrailingQuotes(arg);
+    expect(actual).toEqual(expected);
+  });
+});
+
+describe("secondsToMilliseconds", () => {
+  test.each([
+    [1, 1000],
+    //
+  ])("%s => %s", (arg, expected) => {
+    const actual = secondsToMilliseconds(arg);
+    expect(actual).toEqual(expected);
+  });
+});
+
+describe("minutesToMilliseconds", () => {
+  test.each([
+    [120, 7.2e6],
+    //
+  ])("%s => %s", (arg, expected) => {
+    const actual = minutesToMilliseconds(arg);
     expect(actual).toEqual(expected);
   });
 });
