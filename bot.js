@@ -3,7 +3,7 @@ const { default: PQueue } = require("p-queue");
 
 const fs = require("./fileSystem");
 const { emojisByKey, getPollEmoji } = require("./getEmoji");
-const storage = require("./storage");
+const database = require("./database");
 const {
   endsWithPunctuation,
   markdown,
@@ -16,7 +16,9 @@ const {
 const POLL_PREFIXES = ["!poll", "!p"];
 const SLAP_PREFIXES = ["!slap"];
 const POLL_DIVIDER = "-----";
+
 const OPTION_SCHEMA = /^(?<emoji>.*) - (?<option>.*) \((?<count>.*)\)$/;
+const POLL_ID_SCHEMA = /id:\s(?<pollId>\d+)$/;
 
 const promiseQueue = new PQueue({ concurrency: 1 });
 
@@ -50,12 +52,27 @@ const getEmbed = ({ fields, footer, description = "", title }) => {
   };
 };
 
-const handlePollResults = async (message, args) => {
-  const hasArgs = args.length > 0;
+const getPollEmbed = ({ options, pollId, prompt, votes = {} }) => {
+  const votePairs = Object.entries(votes);
+  const fields = votePairs
+    .sort((pairA, pairB) => {
+      const [categoryA] = pairA;
+      const [categoryB] = pairB;
+      return categoryA.localeCompare(categoryB);
+    })
+    .map(([category, listOfNames]) => {
+      return {
+        name: category,
+        value: listOfNames.join("\n"),
+      };
+    });
 
-  if (hasArgs) {
-    const [pollId] = args;
-  }
+  return getEmbed({
+    fields,
+    footer: `id: ${pollId}`,
+    description: [...options.map(toPairText), POLL_DIVIDER].join("\n"),
+    title: prompt,
+  });
 };
 
 const handlePoll = async (message, args) => {
@@ -104,15 +121,11 @@ const handlePoll = async (message, args) => {
       ]);
     }
 
-    embedText = optionPairs.map(toPairText).join("\n");
+    const pairsWithCount = optionPairs.map((pairs) => [...pairs, 0]);
     const pollId = uniqueId();
 
     const pollEmbedMessage = await message.channel.send(
-      getEmbed({
-        footer: pollId,
-        description: embedText,
-        title: pollPrompt,
-      })
+      getPollEmbed({ options: pairsWithCount, pollId, prompt: pollPrompt })
     );
 
     promiseQueue.addAll(
@@ -121,7 +134,12 @@ const handlePoll = async (message, args) => {
       })
     );
 
-    storage.storePoll(pollEmbedMessage, pollId);
+    database.storePoll({
+      id: pollId,
+      message: pollEmbedMessage,
+      options: pairsWithCount,
+      prompt: pollPrompt,
+    });
   } else {
     const helpMessage = await loadPollHelpMessage();
 
@@ -170,93 +188,27 @@ const onMessage = (message) => {
   }
 };
 
-const parseDescription = (description = "") => {
-  return description.split("\n").map((option) => {
-    return Array.from(option.match(OPTION_SCHEMA).slice(1));
-  });
-};
-
-const updateFieldRemove = (itemToRemove, category, fields) => {
-  return fields
-    .map((field) => {
-      if (field.name === category) {
-        const currentList = field.value.split("\n");
-        const updatedList = currentList.filter((item) => item !== itemToRemove);
-
-        return updatedList.length > 0
-          ? {
-              name: field.name,
-              value: updatedList.join("\n"),
-            }
-          : false;
-      }
-
-      return field;
-    })
-    .filter(Boolean);
-};
-
-const updateFieldAdd = (itemToAdd, category, fields) => {
-  if (fields.some(({ name }) => name === category)) {
-    return fields.map((field) => {
-      if (field.name === category) {
-        const currentList = field.value.split("\n");
-        const updatedList = currentList.includes(itemToAdd)
-          ? currentList
-          : [...currentList, itemToAdd];
-
-        return {
-          name: field.name,
-          value: updatedList.join("\n"),
-        };
-      }
-
-      return field;
-    });
-  }
-
-  return [
-    ...fields,
-    {
-      name: category,
-      value: itemToAdd,
-    },
-  ];
-};
-
 const onChangeReaction = async (reaction, username, action) => {
   const message = reaction.message;
   const currentEmbed = message.embeds[0];
 
   if (username !== message.author.username) {
-    if (storage.includesValue(message)) {
-      const currentOptionPairs = parseDescription(currentEmbed.description);
+    const { pollId } =
+      currentEmbed.footer.text.match(POLL_ID_SCHEMA).groups || {};
 
-      const updatedDescription = currentOptionPairs
-        .map(([emoji, option, oldCount]) => {
-          const newCount =
-            reaction.emoji.name === emoji ? reaction.count - 1 : oldCount;
-          return toPairText([emoji, option, newCount]);
-        })
-        .join("\n");
+    const updateDatabase =
+      action === "remove" ? database.removeVote : database.addVote;
 
-      const currentFields = currentEmbed.fields;
+    await updateDatabase({
+      id: pollId,
+      message,
+      voteOption: reaction.emoji.name,
+      username,
+    });
 
-      const updatedFields =
-        action === "remove"
-          ? updateFieldRemove(username, reaction.emoji.name, currentFields)
-          : updateFieldAdd(username, reaction.emoji.name, currentFields);
+    const updatedPoll = await database.getPoll(pollId, message);
 
-      await message.edit(
-        getEmbed({
-          ...currentEmbed,
-          description: updatedDescription,
-          fields: updatedFields.sort((fieldA, fieldB) => {
-            return fieldA.name.localeCompare(fieldB.name);
-          }),
-        })
-      );
-    }
+    await message.edit(getPollEmbed(updatedPoll));
   }
 };
 

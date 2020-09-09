@@ -28,9 +28,12 @@
     "test": "jest"
   },
   "dependencies": {
+    "@keyv/sqlite": "^2.0.2",
     "discord.js": "^12.3.1",
     "dotenv": "^8.2.0",
-    "p-queue": "^6.6.1"
+    "keyv": "^4.0.1",
+    "p-queue": "^6.6.1",
+    "sqlite3": "^5.0.0"
   },
   "devDependencies": {
     "jest": "^26.4.2"
