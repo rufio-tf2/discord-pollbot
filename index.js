@@ -4,7 +4,7 @@ if (process.env.NODE_ENV !== "production") {
 
 const { Client } = require("discord.js");
 
-const { delegateTask } = require("./bot");
+const { onChangeReaction, onMessage } = require("./bot");
 
 const TOKEN = process.env.DISCORD_TOKEN;
 
@@ -15,7 +15,15 @@ client.once("ready", () => {
 });
 
 client.on("message", (message) => {
-  delegateTask(message);
+  onMessage(message);
+});
+
+client.on("messageReactionAdd", (reaction, user) => {
+  onChangeReaction(reaction, user);
+});
+
+client.on("messageReactionRemove", (reaction, user) => {
+  onChangeReaction(reaction, user);
 });
 
 client.login(TOKEN);
