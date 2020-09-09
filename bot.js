@@ -224,11 +224,11 @@ const updateFieldAdd = (itemToAdd, category, fields) => {
   ];
 };
 
-const onChangeReaction = async (reaction, user, action) => {
+const onChangeReaction = async (reaction, username, action) => {
   const message = reaction.message;
   const currentEmbed = message.embeds[0];
 
-  if (user.username !== message.author.username) {
+  if (username !== message.author.username) {
     if (storage.includesValue(message)) {
       const currentOptionPairs = parseDescription(currentEmbed.description);
 
@@ -244,8 +244,8 @@ const onChangeReaction = async (reaction, user, action) => {
 
       const updatedFields =
         action === "remove"
-          ? updateFieldRemove(user.username, reaction.emoji.name, currentFields)
-          : updateFieldAdd(user.username, reaction.emoji.name, currentFields);
+          ? updateFieldRemove(username, reaction.emoji.name, currentFields)
+          : updateFieldAdd(username, reaction.emoji.name, currentFields);
 
       await message.edit(
         getEmbed({
