@@ -2,34 +2,27 @@ const { MessageEmbed } = require("discord.js");
 const { default: PQueue } = require("p-queue");
 
 const fs = require("./fileSystem");
-const { emojisByKey, getCountEmoji } = require("./getCountEmoji");
+const { emojisByKey, getPollEmoji } = require("./getEmoji");
+const storage = require("./storage");
 const {
   endsWithPunctuation,
   markdown,
-  minutesToMilliseconds,
   parseArgs,
   splitFirstSpace,
   underDash,
   uniqueId,
 } = require("./util");
 
-const pollStorage = {};
-
-const storePoll = (message, pollId) => {
-  pollStorage[message.guildID][message.channelID][pollId] = message.id;
-  return;
-};
-
-const getPoll = (message, pollId) => {
-  return pollStorage[message.guildID][message.channelID][pollId];
-};
+const POLL_PREFIXES = ["!poll", "!p"];
+const SLAP_PREFIXES = ["!slap"];
+// const JOIN_EMOJI_OPTION_TOKEN = " - ";
+const OPTION_SCHEMA = /^(?<emoji>.*) - (?<option>.*) \((?<count>.*)\)$/;
 
 const promiseQueue = new PQueue({ concurrency: 1 });
 
-const POLL_PREFIXES = ["!poll", "!p"];
-const SLAP_PREFIXES = ["!slap"];
-
-const booleanPairs = [["✅"], ["❌"]];
+const toPairText = ([emoji, option, count = 0]) => {
+  return `${emoji} - ${option} (${count})`;
+};
 
 const loadPollHelpMessage = () => {
   return fs.readFile("./helpMessages/PollHelpMessage.md", "utf8");
@@ -39,7 +32,7 @@ const loadSlapHelpMessage = () => {
   return fs.readFile("./helpMessages/SlapHelpMessage.md", "utf8");
 };
 
-const getEmbed = ({ footer, message = "", title }) => {
+const getEmbed = ({ fields, footer, description = "", title }) => {
   const footerObject = footer
     ? {
         text: footer,
@@ -49,7 +42,7 @@ const getEmbed = ({ footer, message = "", title }) => {
   return {
     embed: {
       color: 0xcf5a00,
-      description: message,
+      description,
       title,
       footer: footerObject,
     },
@@ -66,7 +59,6 @@ const handlePollResults = async (message, args) => {
 
 const handlePoll = async (message, args) => {
   const hasArgs = args.length > 0;
-  console.log(JSON.stringify(message, null, 2));
 
   if (hasArgs) {
     const [pollPrompt, ...pollOptions] = args;
@@ -87,52 +79,54 @@ const handlePoll = async (message, args) => {
     let embedText;
 
     if (isTrueFalse) {
-      optionPairs = booleanPairs;
+      optionPairs = [
+        [emojisByKey["yes"], "true"],
+        [emojisByKey["no"], "false"],
+      ];
     } else if (isYesNo) {
       const includeMaybe = pollOptions.some((option) =>
         ["maybe"].includes(option.toLowerCase())
       );
 
-      optionPairs = includeMaybe ? [...booleanPairs, ["❔"]] : booleanPairs;
+      optionPairs = [
+        [emojisByKey["yes"], "true"],
+        [emojisByKey["no"], "false"],
+      ];
+
+      optionPairs = includeMaybe
+        ? [...optionPairs, [emojisByKey["maybe"], "maybe"]]
+        : optionPairs;
     } else {
       optionPairs = pollOptions.map((option, index) => [
-        getCountEmoji(index + 1),
+        getPollEmoji(index + 1),
         option,
       ]);
-
-      embedText = optionPairs
-        .map(([emoji, option]) => `${emoji} - ${option}`)
-        .join("\n");
     }
 
+    embedText = optionPairs.map(toPairText).join("\n");
     const pollId = uniqueId();
-    storePoll(message, polldId);
 
-    const pollEmbed = await message.channel.send(
+    const pollEmbedMessage = await message.channel.send(
       getEmbed({
         footer: pollId,
-        message: embedText,
+        description: embedText,
         title: pollPrompt,
       })
     );
 
     promiseQueue.addAll(
       optionPairs.map(([emoji]) => async () => {
-        await pollEmbed.react(emoji);
+        await pollEmbedMessage.react(emoji);
       })
     );
 
-    const isPollReaction = (reaction, user) => {
-      return optionPairs.some(([emoji]) => {
-        return reaction.emoji.name === emoji;
-      });
-    };
+    storage.storePoll(pollEmbedMessage, pollId);
   } else {
     const helpMessage = await loadPollHelpMessage();
 
     message.channel.send(
       getEmbed({
-        message: helpMessage,
+        description: helpMessage,
         title: underDash("Poll Command"),
       })
     );
@@ -151,14 +145,14 @@ const handleSlap = async (message, target = "") => {
 
     message.channel.send(
       getEmbed({
-        message: helpMessage,
+        description: helpMessage,
         title: underDash(`Slap Command`),
       })
     );
   }
 };
 
-const delegateTask = (message) => {
+const onMessage = (message) => {
   const [firstArg, restMessage] = splitFirstSpace(message.content);
   const normalizedFirstArg = firstArg.toLowerCase();
 
@@ -175,4 +169,44 @@ const delegateTask = (message) => {
   }
 };
 
-module.exports = { delegateTask };
+const parseDescription = (description = "") => {
+  return description
+    .split("\n")
+    .map((option) => Array.from(option.match(OPTION_SCHEMA).slice(1)));
+};
+
+// const parseField =
+
+const onChangeReaction = async (reaction, user) => {
+  const message = reaction.message;
+  const currentEmbed = message.embeds[0];
+
+  reaction.emoji && console.log(reaction.emoji);
+
+  if (storage.includesValue(message)) {
+    const currentOptionPairs = parseDescription(currentEmbed.description);
+
+    const updatedDescription = currentOptionPairs
+      .map(([emoji, option, oldCount]) => {
+        const newCount =
+          reaction.emoji.name === emoji ? reaction.count - 1 : oldCount;
+        return toPairText([emoji, option, newCount]);
+      })
+      .join("\n");
+
+    // const currentFieldPairs = parseField();
+
+    await message.edit(
+      getEmbed({
+        ...currentEmbed,
+        description: updatedDescription,
+        // fields,
+      })
+    );
+  }
+};
+
+module.exports = {
+  onChangeReaction,
+  onMessage,
+};

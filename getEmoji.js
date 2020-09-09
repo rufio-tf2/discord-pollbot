@@ -85,8 +85,8 @@ const digitToWord = {
   36: "z",
 };
 
-const getCountEmoji = (num) => {
+const getPollEmoji = (num) => {
   return `${emojisByKey[digitToWord[num]]}`;
 };
 
-module.exports = { emojisByKey, getCountEmoji };
+module.exports = { emojisByKey, getPollEmoji };
