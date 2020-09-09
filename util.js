@@ -57,6 +57,14 @@ const endsWithPunctuation = (str = "") => {
   return punctuation.some((punc) => str.endsWith(punc));
 };
 
+const secondsToMilliseconds = (seconds) => {
+  return seconds * 1000;
+};
+
+const minutesToMilliseconds = (minutes) => {
+  return secondsToMilliseconds(minutes * 60);
+};
+
 // ---
 
 const parseArgs = (content) => {
@@ -158,9 +166,11 @@ module.exports = {
   isUndefined,
   mapString,
   markdown,
+  minutesToMilliseconds,
   oxfordJoin,
   parseArgs,
   randomFromBag,
+  secondsToMilliseconds,
   splitAt,
   splitFirstSpace,
   stripLeadingTrailingQuotes,

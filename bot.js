@@ -6,6 +6,7 @@ const { emojisByKey, getCountEmoji } = require("./getCountEmoji");
 const {
   endsWithPunctuation,
   markdown,
+  minutesToMilliseconds,
   parseArgs,
   splitFirstSpace,
   underDash,
@@ -14,7 +15,7 @@ const {
 const promiseQueue = new PQueue({ concurrency: 1 });
 
 const POLL_PREFIXES = ["!poll", "!p"];
-const SLAP_PREFIXES = ["!slap", "!s"];
+const SLAP_PREFIXES = ["!slap"];
 
 const booleanPairs = [["✅"], ["❌"]];
 
@@ -95,6 +96,12 @@ const handlePoll = async (message, args) => {
         await pollEmbed.react(emoji);
       })
     );
+
+    const isPollReaction = (reaction, user) => {
+      return optionPairs.some(([emoji]) => {
+        return reaction.emoji.name === emoji;
+      });
+    };
   } else {
     const helpMessage = await loadPollHelpMessage();
 
