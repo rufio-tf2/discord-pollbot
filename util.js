@@ -36,6 +36,10 @@ const isStringEmpty = (v) => {
   return isString(v) && v.length === 0;
 };
 
+const isNil = (v) => {
+  return isUndefined(v) || isNull(v);
+};
+
 const isEmpty = (v) => {
   return [
     isBoolean,
@@ -165,6 +169,7 @@ module.exports = {
   isBoolean,
   isEmpty,
   isInRange,
+  isNil,
   isNull,
   isObject,
   isObjectEmpty,
