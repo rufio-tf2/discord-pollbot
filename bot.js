@@ -10,7 +10,19 @@ const {
   parseArgs,
   splitFirstSpace,
   underDash,
+  uniqueId,
 } = require("./util");
+
+const pollStorage = {};
+
+const storePoll = (message, pollId) => {
+  pollStorage[message.guildID][message.channelID][pollId] = message.id;
+  return;
+};
+
+const getPoll = (message, pollId) => {
+  return pollStorage[message.guildID][message.channelID][pollId];
+};
 
 const promiseQueue = new PQueue({ concurrency: 1 });
 
@@ -44,8 +56,17 @@ const getEmbed = ({ footer, message = "", title }) => {
   };
 };
 
+const handlePollResults = async (message, args) => {
+  const hasArgs = args.length > 0;
+
+  if (hasArgs) {
+    const [pollId] = args;
+  }
+};
+
 const handlePoll = async (message, args) => {
   const hasArgs = args.length > 0;
+  console.log(JSON.stringify(message, null, 2));
 
   if (hasArgs) {
     const [pollPrompt, ...pollOptions] = args;
@@ -84,8 +105,12 @@ const handlePoll = async (message, args) => {
         .join("\n");
     }
 
+    const pollId = uniqueId();
+    storePoll(message, polldId);
+
     const pollEmbed = await message.channel.send(
       getEmbed({
+        footer: pollId,
         message: embedText,
         title: pollPrompt,
       })
