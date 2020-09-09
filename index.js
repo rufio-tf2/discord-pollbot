@@ -18,12 +18,16 @@ client.on("message", (message) => {
   onMessage(message);
 });
 
+const getNickname = (reaction, user) => {
+  return reaction.message.guild.member(user.id).displayName;
+};
+
 client.on("messageReactionAdd", (reaction, user) => {
-  onChangeReaction(reaction, user, "add");
+  onChangeReaction(reaction, getNickname(reaction, user), "add");
 });
 
 client.on("messageReactionRemove", (reaction, user) => {
-  onChangeReaction(reaction, user, "remove");
+  onChangeReaction(reaction, getNickname(reaction, user), "remove");
 });
 
 client.login(TOKEN);
