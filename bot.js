@@ -7,6 +7,7 @@ const database = require("./database");
 const {
   areArraysEqual,
   endsWithPunctuation,
+  isNil,
   markdown,
   parseArgs,
   splitFirstSpace,
@@ -16,6 +17,7 @@ const {
 
 const POLL_PREFIXES = ["!poll", "!p"];
 const SLAP_PREFIXES = ["!slap"];
+const UPDATE_POLL_PREFIXES = ["!upoll", "!up"];
 const POLL_DIVIDER = "-----";
 
 const OPTION_SCHEMA = /^(?<emoji>.*) - (?<option>.*) \((?<count>.*)\)$/;
@@ -203,16 +205,95 @@ const handleSlap = async (message, target = "") => {
   }
 };
 
+const getNickname = (reaction, user) => {
+  return reaction.message.guild.member(user.id).displayName;
+};
+
+const handleUpdatePoll = async (message, pollId) => {
+  if (isNil(pollId) || isNaN(pollId)) return;
+
+  const currentPoll = await database.getPoll(message, pollId);
+
+  if (Object.values(currentPoll).length > 0) {
+    const pollMessage = await message.channel.messages.fetch(
+      currentPoll.messageID
+    );
+
+    const getUpdatedVotesWithReactions = () => {
+      return pollMessage.reactions.cache.reduce((acc, reaction) => {
+        const emojiReaction = reaction.emoji.name;
+
+        return {
+          ...acc,
+          [emojiReaction]: {
+            emoji: emojiReaction,
+            voters: reaction.users.cache
+              .map((user) => {
+                const username = getNickname(reaction, user);
+
+                return username !== pollMessage.author.username
+                  ? username
+                  : false;
+              })
+              .filter(Boolean),
+          },
+        };
+      }, {});
+    };
+
+    const getPollReactionsMap = () =>
+      pollMessage.reactions.cache.reduce((acc, reaction) => {
+        const emojiReaction = reaction._emoji.name;
+
+        return {
+          ...acc,
+          [emojiReaction]: reaction,
+        };
+      }, {});
+
+    const getUpdatedOptionsCount = () => {
+      return currentPoll.options.map(({ emoji, count, ...rest }) => {
+        return {
+          ...rest,
+          emoji,
+          count: getPollReactionsMap()[emoji].count - 1,
+        };
+      });
+    };
+
+    const updatedPoll = {
+      ...currentPoll,
+      options: getUpdatedOptionsCount(),
+      votes: getUpdatedVotesWithReactions(),
+    };
+
+    // updateMessage
+
+    // console.log("updatedPoll", updatedPoll);
+
+    database
+      .setPoll(message, pollId, updatedPoll)
+      .then(() => database.getPoll(message, pollId))
+      .then((p) => {
+        pollMessage.edit(getPollEmbed(p));
+      });
+  }
+};
+
 const onMessage = (message) => {
   const [firstArg, restMessage] = splitFirstSpace(message.content);
   const normalizedFirstArg = firstArg.toLowerCase();
 
   const isPoll = POLL_PREFIXES.includes(normalizedFirstArg);
   const isSlap = SLAP_PREFIXES.includes(normalizedFirstArg);
+  const isUpdatePoll = UPDATE_POLL_PREFIXES.includes(normalizedFirstArg);
 
   if (isPoll) {
     const args = parseArgs(restMessage);
     handlePoll(message, args);
+  } else if (isUpdatePoll) {
+    const targetPollId = parseInt(restMessage);
+    handleUpdatePoll(message, targetPollId);
   } else if (isSlap) {
     handleSlap(message, restMessage);
   } else {
@@ -228,16 +309,16 @@ const onChangeReaction = async (reaction, username, action) => {
     const { pollId } =
       currentEmbed.footer.text.match(POLL_ID_SCHEMA).groups || {};
 
-    const updateDatabase =
+    const handleVote =
       action === "remove" ? database.removeVote : database.addVote;
 
-    updateDatabase({
+    handleVote({
       id: pollId,
       message,
-      voteEmoji: reaction.emoji.name,
+      reaction,
       username,
     })
-      .then(() => database.getPoll(pollId, message))
+      .then(() => database.getPoll(message, pollId))
       .then((updatedPoll) => {
         message.edit(getPollEmbed(updatedPoll));
       });
