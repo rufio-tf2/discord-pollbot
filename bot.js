@@ -17,7 +17,7 @@ const {
 
 const POLL_PREFIXES = ["!poll", "!p"];
 const SLAP_PREFIXES = ["!slap"];
-const UPDATE_POLL_PREFIXES = ["!upoll", "!up"];
+const UPDATE_POLL_PREFIXES = ["!updatepoll", "!upoll", "!up", "!syncpoll"];
 const POLL_DIVIDER = "-----";
 
 const OPTION_SCHEMA = /^(?<emoji>.*) - (?<option>.*) \((?<count>.*)\)$/;
