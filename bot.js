@@ -56,12 +56,15 @@ const getEmbed = ({ fields, footer, description = "", title }) => {
 };
 
 const getPollEmbed = ({ options, pollId, prompt, votes = {} }) => {
-  const sortedVotes = Object.values(votes).sort((voteA, voteB) => {
-    return voteA.order - voteB.order;
+  const sortedOptions = options.sort((optionA, optionB) => {
+    return optionA.order - optionB.order;
   });
 
-  const fields = sortedVotes
-    .map(({ emoji, voters }) => {
+  const fields = sortedOptions
+    .map(({ emoji }) => {
+      const vote = votes[emoji] || {};
+      const { voters = [] } = vote;
+
       return voters.length
         ? {
             name: emoji,
