@@ -1,5 +1,4 @@
 const keyv = require("./keyv");
-// const { isNil } = require("./util");
 
 const set = (key, value) => {
   return keyv.set(key, JSON.stringify(value));
@@ -47,65 +46,63 @@ const storePoll = ({ id, message, options, prompt, votes = {} }) => {
   });
 };
 
-const addVote = async ({ id, message, voteOption, username }) => {
+const addVote = async ({ id, message, voteEmoji, username }) => {
   const currentPoll = await getPoll(id, message);
 
   const updatedOptionsCount = currentPoll.options.map(
-    ([emoji, option, count = 0]) => {
-      return emoji === voteOption
-        ? [emoji, option, count + 1]
-        : [emoji, option, count];
+    ({ emoji, option, count = 0 }) => {
+      return emoji === voteEmoji
+        ? { emoji, option, count: count + 1 }
+        : { emoji, option, count };
     }
   );
 
-  const currentListOfNames = currentPoll.votes[voteOption] || [];
+  const voteData = currentPoll.votes[voteEmoji] || {};
+  const { voters = [] } = voteData;
 
-  updatedVotes = {
+  const updatedVotes = {
     ...currentPoll.votes,
-    [voteOption]: currentListOfNames.includes(username)
-      ? currentListOfNames
-      : [...currentListOfNames, username],
+    [voteEmoji]: {
+      ...voteData,
+      emoji: voteEmoji,
+      voters: voters.includes(username) ? voters : [...voters, username],
+    },
+  };
+
+  const updatedPoll = {
+    ...currentPoll,
+    options: updatedOptionsCount,
+    votes: updatedVotes,
+  };
+  return setPoll(id, message, updatedPoll);
+};
+
+const removeVote = async ({ id, message, voteEmoji, username }) => {
+  const currentPoll = await getPoll(id, message);
+
+  const updatedOptionsCount = currentPoll.options.map(
+    ({ emoji, option, count = 0 }) => {
+      return emoji === voteEmoji
+        ? { emoji, option, count: Math.max(0, count - 1) }
+        : { emoji, option, count };
+    }
+  );
+
+  const voteData = currentPoll.votes[voteEmoji] || {};
+  const { voters = [] } = voteData;
+
+  const updatedVotes = {
+    ...currentPoll.votes,
+    [voteEmoji]: {
+      ...voteData,
+      voters: voters.filter((voter) => voter !== username),
+    },
   };
 
   return setPoll(id, message, {
     ...currentPoll,
     options: updatedOptionsCount,
     votes: updatedVotes,
-  });
-};
-
-const removeVote = async ({ id, message, voteOption, username }) => {
-  const currentPoll = await getPoll(id, message);
-  const currentVotePairs = Object.entries(currentPoll.votes);
-
-  const updatedOptionsCount = currentPoll.options.map(
-    ([emoji, option, count = 0]) => {
-      return emoji === voteOption
-        ? [emoji, option, Math.max(0, count - 1)]
-        : [emoji, option, count];
-    }
-  );
-
-  const updatedVotePairs = currentVotePairs
-    .map(([category, listOfNames]) => {
-      if (category === voteOption) {
-        const updatedListOfNames = listOfNames.filter(
-          (name) => name !== username
-        );
-
-        return updatedListOfNames.length > 0
-          ? [category, updatedListOfNames]
-          : false;
-      }
-
-      return [category, listOfNames];
-    })
-    .filter(Boolean);
-
-  return setPoll(id, message, {
-    ...currentPoll,
-    options: updatedOptionsCount,
-    votes: Object.fromEntries(updatedVotePairs),
   });
 };
 
