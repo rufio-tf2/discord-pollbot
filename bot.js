@@ -1,12 +1,12 @@
 const { MessageEmbed } = require("discord.js");
 const { default: PQueue } = require("p-queue");
 
-const fs = require("./fileSystem");
-const { emojisByKey, getPollEmoji } = require("./getEmoji");
 const database = require("./database");
 const {
-  areArraysEqual,
+  emojisByKey,
   endsWithPunctuation,
+  fs,
+  getPollEmoji,
   isNil,
   markdown,
   parseArgs,

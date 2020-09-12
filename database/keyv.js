@@ -1,7 +1,7 @@
 const Keyv = require("keyv");
 const sqlite3 = require("sqlite3").verbose();
 
-const databaseName = "slapBotDatabase";
+const databaseName = "SlapBotDatabase";
 const pathToDatabase = `./database/${databaseName}`;
 
 const database = new sqlite3.Database(pathToDatabase, (error) => {
