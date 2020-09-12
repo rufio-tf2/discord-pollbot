@@ -5,6 +5,7 @@ const fs = require("./fileSystem");
 const { emojisByKey, getPollEmoji } = require("./getEmoji");
 const database = require("./database");
 const {
+  areArraysEqual,
   endsWithPunctuation,
   markdown,
   parseArgs,
@@ -18,11 +19,11 @@ const SLAP_PREFIXES = ["!slap"];
 const POLL_DIVIDER = "-----";
 
 const OPTION_SCHEMA = /^(?<emoji>.*) - (?<option>.*) \((?<count>.*)\)$/;
-const POLL_ID_SCHEMA = /id:\s(?<pollId>\d+)$/;
+const POLL_ID_SCHEMA = /POLL_ID:\s(?<pollId>\d+)$/;
 
 const promiseQueue = new PQueue({ concurrency: 1 });
 
-const toPairText = ([emoji, option, count = 0]) => {
+const toDescriptionSummary = ({ emoji, option, count = 0 }) => {
   return `${emoji} - ${option} (${count})`;
 };
 
@@ -53,26 +54,90 @@ const getEmbed = ({ fields, footer, description = "", title }) => {
 };
 
 const getPollEmbed = ({ options, pollId, prompt, votes = {} }) => {
-  const votePairs = Object.entries(votes);
-  const fields = votePairs
-    .sort((pairA, pairB) => {
-      const [categoryA] = pairA;
-      const [categoryB] = pairB;
-      return categoryA.localeCompare(categoryB);
+  const sortedVotes = Object.values(votes).sort((voteA, voteB) => {
+    return voteA.order - voteB.order;
+  });
+
+  const fields = sortedVotes
+    .map(({ emoji, voters }) => {
+      return voters.length
+        ? {
+            name: emoji,
+            value: voters.sort().join("\n"),
+          }
+        : false;
     })
-    .map(([category, listOfNames]) => {
-      return {
-        name: category,
-        value: listOfNames.join("\n"),
-      };
-    });
+    .filter(Boolean);
 
   return getEmbed({
     fields,
-    footer: `id: ${pollId}`,
-    description: [...options.map(toPairText), POLL_DIVIDER].join("\n"),
+    footer: `POLL_ID: ${pollId}`,
+    description: [...options.map(toDescriptionSummary), POLL_DIVIDER].join(
+      "\n"
+    ),
     title: prompt,
   });
+};
+
+const buildOptions = (pollOptions) => {
+  const isYesNo =
+    pollOptions.length <= 3 &&
+    pollOptions.some((option) =>
+      ["yes", "no", "maybe"].includes(option.toLowerCase())
+    );
+
+  const isTrueFalse =
+    pollOptions.length <= 2 &&
+    pollOptions.some((option) =>
+      ["true", "false"].includes(option.toLowerCase())
+    );
+
+  if (isYesNo) {
+    const includeMaybe = pollOptions.some((option) =>
+      ["maybe"].includes(option.toLowerCase())
+    );
+
+    const options = [
+      {
+        emoji: emojisByKey["yes"],
+        option: "Yes",
+        order: 0,
+      },
+      {
+        emoji: emojisByKey["no"],
+        option: "No",
+        order: 1,
+      },
+    ];
+
+    return includeMaybe
+      ? [
+          ...options,
+          {
+            emoji: emojisByKey["maybe"],
+            option: "Maybe",
+            order: 2,
+          },
+        ]
+      : options;
+  } else if (isTrueFalse) {
+    return [
+      {
+        emoji: emojisByKey["yes"],
+        option: "True",
+        order: 0,
+      },
+      {
+        emoji: emojisByKey["no"],
+        option: "False",
+        order: 1,
+      },
+    ];
+  } else {
+    return pollOptions.map((option, index) => {
+      return { option, order: index, emoji: getPollEmoji(index + 1) };
+    });
+  }
 };
 
 const handlePoll = async (message, args) => {
@@ -81,63 +146,30 @@ const handlePoll = async (message, args) => {
   if (hasArgs) {
     const [pollPrompt, ...pollOptions] = args;
 
-    const isYesNo =
-      pollOptions.length <= 3 &&
-      pollOptions.some((option) =>
-        ["yes", "no", "maybe"].includes(option.toLowerCase())
-      );
+    const options = buildOptions(pollOptions);
 
-    const isTrueFalse =
-      pollOptions.length <= 2 &&
-      pollOptions.some((option) =>
-        ["true", "false"].includes(option.toLowerCase())
-      );
-
-    let optionPairs;
-    let embedText;
-
-    if (isTrueFalse) {
-      optionPairs = [
-        [emojisByKey["yes"], "true"],
-        [emojisByKey["no"], "false"],
-      ];
-    } else if (isYesNo) {
-      const includeMaybe = pollOptions.some((option) =>
-        ["maybe"].includes(option.toLowerCase())
-      );
-
-      optionPairs = [
-        [emojisByKey["yes"], "true"],
-        [emojisByKey["no"], "false"],
-      ];
-
-      optionPairs = includeMaybe
-        ? [...optionPairs, [emojisByKey["maybe"], "maybe"]]
-        : optionPairs;
-    } else {
-      optionPairs = pollOptions.map((option, index) => [
-        getPollEmoji(index + 1),
-        option,
-      ]);
-    }
-
-    const pairsWithCount = optionPairs.map((pairs) => [...pairs, 0]);
     const pollId = uniqueId();
 
-    const pollEmbedMessage = await message.channel.send(
-      getPollEmbed({ options: pairsWithCount, pollId, prompt: pollPrompt })
-    );
+    const pollEmbed = getPollEmbed({
+      options,
+      pollId,
+      prompt: pollPrompt,
+    });
+
+    const pollEmbedMessage = await message.channel.send(pollEmbed);
 
     promiseQueue.addAll(
-      optionPairs.map(([emoji]) => async () => {
-        await pollEmbedMessage.react(emoji);
-      })
+      Object.values(
+        options.map(({ emoji }) => async () => {
+          await pollEmbedMessage.react(emoji);
+        })
+      )
     );
 
     database.storePoll({
       id: pollId,
       message: pollEmbedMessage,
-      options: pairsWithCount,
+      options,
       prompt: pollPrompt,
     });
   } else {
@@ -199,16 +231,16 @@ const onChangeReaction = async (reaction, username, action) => {
     const updateDatabase =
       action === "remove" ? database.removeVote : database.addVote;
 
-    await updateDatabase({
+    updateDatabase({
       id: pollId,
       message,
-      voteOption: reaction.emoji.name,
+      voteEmoji: reaction.emoji.name,
       username,
-    });
-
-    const updatedPoll = await database.getPoll(pollId, message);
-
-    await message.edit(getPollEmbed(updatedPoll));
+    })
+      .then(() => database.getPoll(pollId, message))
+      .then((updatedPoll) => {
+        message.edit(getPollEmbed(updatedPoll));
+      });
   }
 };
 

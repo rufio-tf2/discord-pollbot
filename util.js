@@ -52,6 +52,15 @@ const isEmpty = (v) => {
   ].some((predicate) => predicate(v));
 };
 
+const areArraysEqual = (arrayA, arrayB) => {
+  return (
+    Array.isArray(arrayA) &&
+    Array.isArray(arrayB) &&
+    arrayA.length === arrayB.length &&
+    arrayA.every((val, index) => val === arrayB[index])
+  );
+};
+
 const splitAt = (arr, index) => {
   return [arr.slice(0, index), arr.slice(index)];
 };
@@ -162,6 +171,7 @@ const uniqueId = (prefix) => {
 };
 
 module.exports = {
+  areArraysEqual,
   endsWithPunctuation,
   includesPair,
   isArray,
