@@ -23,14 +23,16 @@
     "npm": "*"
   },
   "scripts": {
+    "clear-db": "rm -rf ./database/db/",
     "deploy": "git push heroku master",
-    "start": "node index.js",
+    "start": "npm run clear-db && node index.js",
     "test": "jest"
   },
   "dependencies": {
     "@keyv/sqlite": "^2.0.2",
     "discord.js": "^12.3.1",
     "dotenv": "^8.2.0",
+    "fs-extra": "^9.0.1",
     "keyv": "^4.0.1",
     "p-queue": "^6.6.1",
     "sqlite3": "^5.0.0"
