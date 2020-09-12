@@ -16,14 +16,14 @@ const getDefault = (key, defaultValue) => {
   });
 };
 
-const getPoll = (id, message) => {
+const getPoll = (message, id) => {
   return get(message.guildID).then((guildObject = {}) => {
     const channelObject = guildObject[message.channelID] || {};
     return channelObject[id] || {};
   });
 };
 
-const setPoll = async (id, message, poll) => {
+const setPoll = async (message, id, poll) => {
   const guildObject = await getDefault(message.guildID, {});
   const channelObject = guildObject[message.channelID] || {};
 
@@ -37,8 +37,8 @@ const setPoll = async (id, message, poll) => {
 };
 
 const storePoll = ({ id, message, options, prompt, votes = {} }) => {
-  return setPoll(id, message, {
-    messageId: message.id,
+  return setPoll(message, id, {
+    messageID: message.id,
     options,
     pollId: id,
     prompt,
@@ -46,13 +46,14 @@ const storePoll = ({ id, message, options, prompt, votes = {} }) => {
   });
 };
 
-const addVote = async ({ id, message, voteEmoji, username }) => {
-  const currentPoll = await getPoll(id, message);
+const addVote = async ({ id, message, reaction, username }) => {
+  const currentPoll = await getPoll(message, id);
+  const voteEmoji = reaction.emoji.name;
 
   const updatedOptionsCount = currentPoll.options.map(
     ({ emoji, option, count = 0 }) => {
       return emoji === voteEmoji
-        ? { emoji, option, count: count + 1 }
+        ? { emoji, option, count: reaction.count - 1 } // Adjust for bot vote
         : { emoji, option, count };
     }
   );
@@ -74,17 +75,18 @@ const addVote = async ({ id, message, voteEmoji, username }) => {
     options: updatedOptionsCount,
     votes: updatedVotes,
   };
-  return setPoll(id, message, updatedPoll);
+  return setPoll(message, id, updatedPoll);
 };
 
-const removeVote = async ({ id, message, voteEmoji, username }) => {
-  const currentPoll = await getPoll(id, message);
+const removeVote = async ({ id, message, reaction, username }) => {
+  const currentPoll = await getPoll(message, id);
+  const voteEmoji = reaction.emoji.name;
 
   const updatedOptionsCount = currentPoll.options.map(
-    ({ emoji, option, count = 0 }) => {
+    ({ emoji, count = 0, ...rest }) => {
       return emoji === voteEmoji
-        ? { emoji, option, count: Math.max(0, count - 1) }
-        : { emoji, option, count };
+        ? { ...rest, emoji, count: Math.max(0, reaction.count - 1) } // Adjust for bot vote
+        : { ...rest, emoji, count };
     }
   );
 
@@ -99,7 +101,7 @@ const removeVote = async ({ id, message, voteEmoji, username }) => {
     },
   };
 
-  return setPoll(id, message, {
+  return setPoll(message, id, {
     ...currentPoll,
     options: updatedOptionsCount,
     votes: updatedVotes,
@@ -110,5 +112,6 @@ module.exports = {
   addVote,
   getPoll,
   removeVote,
+  setPoll,
   storePoll,
 };
