@@ -50,29 +50,25 @@ const addVote = async ({ id, message, reaction, username }) => {
   const currentPoll = await getPoll(message, id);
   const voteEmoji = reaction.emoji.name;
 
-  const updatedOptionsCount = currentPoll.options.map(
-    ({ emoji, option, count = 0 }) => {
-      return emoji === voteEmoji
-        ? { emoji, option, count: reaction.count - 1 } // Adjust for bot vote
-        : { emoji, option, count };
-    }
-  );
-
   const voteData = currentPoll.votes[voteEmoji] || {};
   const { voters = [] } = voteData;
+
+  const updatedVoters = voters.includes(username)
+    ? voters
+    : [...voters, username];
 
   const updatedVotes = {
     ...currentPoll.votes,
     [voteEmoji]: {
       ...voteData,
       emoji: voteEmoji,
-      voters: voters.includes(username) ? voters : [...voters, username],
+      voters: updatedVoters,
+      count: updatedVoters.length,
     },
   };
 
   const updatedPoll = {
     ...currentPoll,
-    options: updatedOptionsCount,
     votes: updatedVotes,
   };
   return setPoll(message, id, updatedPoll);
@@ -82,28 +78,22 @@ const removeVote = async ({ id, message, reaction, username }) => {
   const currentPoll = await getPoll(message, id);
   const voteEmoji = reaction.emoji.name;
 
-  const updatedOptionsCount = currentPoll.options.map(
-    ({ emoji, count = 0, ...rest }) => {
-      return emoji === voteEmoji
-        ? { ...rest, emoji, count: Math.max(0, reaction.count - 1) } // Adjust for bot vote
-        : { ...rest, emoji, count };
-    }
-  );
-
   const voteData = currentPoll.votes[voteEmoji] || {};
   const { voters = [] } = voteData;
+
+  const updatedVoters = voters.filter((voter) => voter !== username);
 
   const updatedVotes = {
     ...currentPoll.votes,
     [voteEmoji]: {
       ...voteData,
-      voters: voters.filter((voter) => voter !== username),
+      voters: updatedVoters,
+      count: updatedVoters.length,
     },
   };
 
   return setPoll(message, id, {
     ...currentPoll,
-    options: updatedOptionsCount,
     votes: updatedVotes,
   });
 };

@@ -74,9 +74,15 @@ const getPollEmbed = ({ options, pollId, prompt, votes = {} }) => {
   return getEmbed({
     fields,
     footer: `POLL_ID: ${pollId}`,
-    description: [...options.map(toDescriptionSummary), POLL_DIVIDER].join(
-      "\n"
-    ),
+    description: [
+      ...options.map((option) =>
+        toDescriptionSummary({
+          ...option,
+          count: votes[option.emoji] ? votes[option.emoji].count : 0,
+        })
+      ),
+      POLL_DIVIDER,
+    ].join("\n"),
     title: prompt,
   });
 };
@@ -223,59 +229,35 @@ const handleUpdatePoll = async (message, pollId) => {
       return pollMessage.reactions.cache.reduce((acc, reaction) => {
         const emojiReaction = reaction.emoji.name;
 
+        const updatedVoters = reaction.users.cache
+          .map((user) => {
+            const username = getNickname(reaction, user);
+
+            return username !== pollMessage.author.username ? username : false;
+          })
+          .filter(Boolean);
+
         return {
           ...acc,
           [emojiReaction]: {
             emoji: emojiReaction,
-            voters: reaction.users.cache
-              .map((user) => {
-                const username = getNickname(reaction, user);
-
-                return username !== pollMessage.author.username
-                  ? username
-                  : false;
-              })
-              .filter(Boolean),
+            voters: updatedVoters,
+            count: updatedVoters.length,
           },
         };
       }, {});
     };
 
-    const getPollReactionsMap = () =>
-      pollMessage.reactions.cache.reduce((acc, reaction) => {
-        const emojiReaction = reaction._emoji.name;
-
-        return {
-          ...acc,
-          [emojiReaction]: reaction,
-        };
-      }, {});
-
-    const getUpdatedOptionsCount = () => {
-      return currentPoll.options.map(({ emoji, count, ...rest }) => {
-        return {
-          ...rest,
-          emoji,
-          count: getPollReactionsMap()[emoji].count - 1,
-        };
-      });
-    };
-
     const updatedPoll = {
       ...currentPoll,
-      options: getUpdatedOptionsCount(),
       votes: getUpdatedVotesWithReactions(),
     };
-
-    // updateMessage
-
-    // console.log("updatedPoll", updatedPoll);
 
     database
       .setPoll(message, pollId, updatedPoll)
       .then(() => database.getPoll(message, pollId))
-      .then((p) => {
-        pollMessage.edit(getPollEmbed(p));
+      .then((poll) => {
+        pollMessage.edit(getPollEmbed(poll));
       });
   }
 };
