@@ -34,7 +34,6 @@ const setPoll = async (poll) => {
 
   const guildObject = await get(guildId, {});
   const channelObject = guildObject[channelId] || {};
-  const date = new Date();
 
   return set(guildId, {
     ...guildObject,
@@ -42,7 +41,6 @@ const setPoll = async (poll) => {
       ...channelObject,
       [id]: {
         ...defaultPoll,
-        timestamp: date.getTime(),
         ...poll,
       },
     },
@@ -63,6 +61,7 @@ const addVote = async ({ id, message, reaction, username }) => {
 
   const updatedVotes = {
     ...currentPoll.votes,
+    lastVoter: { action: "cast", username },
     [voteEmoji]: {
       ...voteData,
       emoji: voteEmoji,
@@ -73,6 +72,7 @@ const addVote = async ({ id, message, reaction, username }) => {
 
   const updatedPoll = {
     ...currentPoll,
+    updatedAt: new Date().getTime(),
     votes: updatedVotes,
   };
   return setPoll(updatedPoll);
@@ -89,6 +89,7 @@ const removeVote = async ({ id, message, reaction, username }) => {
 
   const updatedVotes = {
     ...currentPoll.votes,
+    lastVoter: { action: "removed", username },
     [voteEmoji]: {
       ...voteData,
       voters: updatedVoters,
@@ -98,6 +99,7 @@ const removeVote = async ({ id, message, reaction, username }) => {
 
   return setPoll({
     ...currentPoll,
+    updatedAt: new Date().getTime(),
     votes: updatedVotes,
   });
 };
