@@ -19,7 +19,14 @@ const {
 
 const POLL_PREFIXES = ["!poll", "!p"];
 const SLAP_PREFIXES = ["!slap"];
-const UPDATE_POLL_PREFIXES = ["!updatepoll", "!upoll", "!up", "!syncpoll"];
+const UPDATE_POLL_PREFIXES = [
+  "!updatepoll",
+  "!up",
+  "!syncpoll",
+  "!votesync",
+  "!vsync",
+  "!psync",
+];
 const POLL_DIVIDER = "-----";
 const FOOTER_JOINER = "  •  ";
 
@@ -93,10 +100,17 @@ const buildLastActionText = ({ action, updatedAt, username }) => {
   }
 };
 
-const getPollEmbed = ({ id, options, prompt, votes = {}, updatedAt }) => {
+const getPollEmbed = ({
+  id,
+  lastVoter,
+  options,
+  prompt,
+  votes = {},
+  updatedAt,
+}) => {
   const sortedOptions = options
     .filter((option) => {
-      const vote = votes[option.emoji] || {};
+      const vote = votes[option.emoji] ?? {};
       const { voters = [] } = vote;
       return voters.length > 0;
     })
@@ -129,11 +143,13 @@ const getPollEmbed = ({ id, options, prompt, votes = {}, updatedAt }) => {
 
   const pollIdLabeled = `POLL_ID: ${id}`;
 
-  const lastVoter = votes.lastVoter
-    ? buildLastActionText({ ...votes.lastVoter, updatedAt })
+  const lastVoterText = lastVoter
+    ? buildLastActionText({ ...lastVoter, updatedAt })
     : undefined;
 
-  const footer = [pollIdLabeled, lastVoter].filter(Boolean).join(FOOTER_JOINER);
+  const footer = [pollIdLabeled, lastVoterText]
+    .filter(Boolean)
+    .join(FOOTER_JOINER);
 
   const optionsWithCount = options.map((option) => ({
     ...option,
@@ -232,25 +248,29 @@ const handlePoll = async (message, args) => {
       prompt,
     });
 
-    const pollEmbedMessage = await message.channel.send(pollEmbed);
+    try {
+      const pollEmbedMessage = await message.channel.send(pollEmbed);
 
-    promiseQueue.addAll(
-      Object.values(
-        options.map(({ emoji }) => async () => {
-          await pollEmbedMessage.react(emoji);
-        })
-      )
-    );
+      promiseQueue.addAll(
+        Object.values(
+          options.map(({ emoji }) => async () => {
+            await pollEmbedMessage.react(emoji);
+          })
+        )
+      );
 
-    database.setPoll({
-      channelId: pollEmbedMessage.channel.id,
-      guildId: pollEmbedMessage.channel.guild.id,
-      id: pollId,
-      messageId: pollEmbedMessage.id,
-      options,
-      prompt: prompt,
-      createdAt: new Date().getTime(),
-    });
+      database.setPoll({
+        channelId: pollEmbedMessage.channel.id,
+        guildId: pollEmbedMessage.channel.guild.id,
+        id: pollId,
+        messageId: pollEmbedMessage.id,
+        options,
+        prompt: prompt,
+        createdAt: new Date().getTime(),
+      });
+    } catch (error) {
+      console.error("Error saving new poll. ", error);
+    }
   } else {
     const helpMessage = await loadPollHelpMessage();
 
@@ -286,66 +306,98 @@ const getNicknameFromReaction = (reaction, userId) => {
   return reaction.message.guild.member(userId).displayName;
 };
 
+const getVoteCount = (poll, emoji) => {
+  return poll?.votes?.[emoji]?.count ?? 0;
+};
+
 const handleUpdatePoll = async (message, pollId) => {
   if (isNil(pollId) || isNaN(pollId)) return;
 
   const currentPoll = await database.getPoll(message, pollId);
 
-  if (Object.values(currentPoll).length > 0) {
-    const pollMessage = await message.channel.messages.fetch(
-      currentPoll.messageId
-    );
+  if (currentPoll.messageId) {
+    let pollMessage;
 
-    const getUpdatedVotesWithReactions = () => {
-      return pollMessage.reactions.cache.reduce((acc, reaction) => {
-        const emojiReaction = reaction.emoji.name;
+    try {
+      pollMessage = await message.channel.messages.fetch(currentPoll.messageId);
+    } catch (error) {
+      console.error("Error fetching poll message. Unable to update poll.");
+    }
 
-        const updatedVoters = reaction.users.cache
-          .map((user) => {
-            const username = getNicknameFromReaction(reaction, user.id);
+    if (pollMessage) {
+      const getUpdatedVotesWithReactions = async () => {
+        return pollMessage.reactions.cache.reduce((acc, reaction) => {
+          const emojiReaction = reaction.emoji.name;
 
-            return username !== pollMessage.author.username ? username : false;
-          })
-          .filter(Boolean);
+          const updatedVoters = reaction.users.cache
+            .map((user) => {
+              const username = getNicknameFromReaction(reaction, user.id);
 
-        return {
-          ...acc,
-          lastVoter: {
-            action: "update",
-            username: getNicknameFromReaction(reaction, message.author.id),
-          },
-          [emojiReaction]: {
-            emoji: emojiReaction,
-            voters: updatedVoters,
-            count: updatedVoters.length,
-          },
-        };
-      }, {});
-    };
+              return username !== pollMessage.author.username
+                ? username
+                : false;
+            })
+            .filter(Boolean);
 
-    const updatedPoll = {
-      ...currentPoll,
-      updatedAt: new Date().getTime(),
-      votes: getUpdatedVotesWithReactions(),
-    };
+          return {
+            ...acc,
+            lastVoter: acc.lastVoter ?? {
+              action: "update",
+              username: getNicknameFromReaction(reaction, message.author.id),
+            },
+            [emojiReaction]: {
+              count: updatedVoters.length,
+              emoji: emojiReaction,
+              voters: updatedVoters,
+            },
+          };
+        }, {});
+      };
 
-    const lastUpdated = markdown.bold(
-      `${formatTimeDistance(
-        currentPoll.updatedAt || currentPoll.createdAt
-      )} ago`
-    );
+      const updatedVotes = await getUpdatedVotesWithReactions();
 
-    const updateMessage = `Poll updated. Previous update ${lastUpdated}.`;
+      const updatedPoll = {
+        ...currentPoll,
+        lastVoter: updatedVotes.lastVoter,
+        updatedAt: new Date().getTime(),
+        votes: Object.fromEntries(
+          Object.entries(updatedVotes).filter(([key]) => key !== "lastVoter")
+        ),
+      };
 
-    database
-      .setPoll(updatedPoll)
-      .then(() => database.getPoll(message, pollId))
-      .then((poll) => {
-        pollMessage.edit(getPollEmbed(poll));
-      })
-      .then(() => {
-        message.channel.send(markdown.italicize(updateMessage));
-      });
+      const changes = Object.values(updatedPoll?.votes).reduce(
+        (acc, { count, emoji }) => {
+          const currentVoteCount = getVoteCount(currentPoll, emoji);
+          return currentVoteCount !== count
+            ? [...acc, [emoji, count - currentVoteCount]]
+            : acc;
+        },
+        []
+      );
+
+      const changesString = changes
+        .map(([emoji, delta]) => `${emoji} (${delta >= 0 ? "+" : ""}${delta})`)
+        .join(", ");
+
+      const changesMessage =
+        changes.length > 0
+          ? `Votes updated for ${changesString}.`
+          : `No changes since last update ${formatTimeDistance(
+              currentPoll.updatedAt || currentPoll.createdAt
+            )} ago.`;
+
+      const updateMessage = `Poll sync'd. ${changesMessage}`;
+
+      database
+        .setPoll(updatedPoll)
+        .then(() => database.getPoll(message, pollId))
+        .then((poll) => {
+          pollMessage.edit(getPollEmbed(poll));
+        })
+        .then(() => {
+          message.channel.send(markdown.italicize(updateMessage));
+        });
+    }
   }
 };
 
@@ -376,7 +428,7 @@ const onChangeReaction = async (reaction, username, action) => {
 
   if (username !== message.author.username) {
     const { pollId } =
-      currentEmbed.footer.text.match(POLL_ID_SCHEMA).groups || {};
+      currentEmbed.footer.text.match(POLL_ID_SCHEMA).groups ?? {};
 
     const handleVote =
       action === "remove" ? database.removeVote : database.addVote;

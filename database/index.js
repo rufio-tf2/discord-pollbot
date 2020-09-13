@@ -23,9 +23,8 @@ const get = (key, defaultValue) => {
 };
 
 const getPoll = (message, id) => {
-  return get(message.channel.guild.id).then((guildObject = {}) => {
-    const channelObject = guildObject[message.channel.id] || {};
-    return channelObject[id] || {};
+  return get(message.channel.guild.id).then((guildObject) => {
+    return guildObject?.[message.channel.id]?.[id] ?? {};
   });
 };
 
@@ -33,7 +32,7 @@ const setPoll = async (poll) => {
   const { channelId, guildId, id } = poll;
 
   const guildObject = await get(guildId, {});
-  const channelObject = guildObject[channelId] || {};
+  const channelObject = guildObject[channelId] ?? {};
 
   return set(guildId, {
     ...guildObject,
@@ -52,7 +51,7 @@ const addVote = async ({ id, message, reaction, username }) => {
 
   const voteEmoji = reaction.emoji.name;
 
-  const voteData = currentPoll.votes[voteEmoji] || {};
+  const voteData = currentPoll.votes[voteEmoji] ?? {};
   const { voters = [] } = voteData;
 
   const updatedVoters = voters.includes(username)
@@ -61,7 +60,6 @@ const addVote = async ({ id, message, reaction, username }) => {
 
   const updatedVotes = {
     ...currentPoll.votes,
-    lastVoter: { action: "cast", username },
     [voteEmoji]: {
       ...voteData,
       emoji: voteEmoji,
@@ -72,6 +70,7 @@ const addVote = async ({ id, message, reaction, username }) => {
 
   const updatedPoll = {
     ...currentPoll,
+    lastVoter: { action: "cast", username },
     updatedAt: new Date().getTime(),
     votes: updatedVotes,
   };
@@ -82,14 +81,13 @@ const removeVote = async ({ id, message, reaction, username }) => {
   const currentPoll = await getPoll(message, id);
   const voteEmoji = reaction.emoji.name;
 
-  const voteData = currentPoll.votes[voteEmoji];
+  const voteData = currentPoll.votes[voteEmoji] ?? {};
   const { voters = [] } = voteData;
 
   const updatedVoters = voters.filter((voter) => voter !== username);
 
   const updatedVotes = {
     ...currentPoll.votes,
-    lastVoter: { action: "removed", username },
     [voteEmoji]: {
       ...voteData,
       voters: updatedVoters,
@@ -99,6 +97,7 @@ const removeVote = async ({ id, message, reaction, username }) => {
 
   return setPoll({
     ...currentPoll,
+    lastVoter: { action: "removed", username },
     updatedAt: new Date().getTime(),
     votes: updatedVotes,
   });
