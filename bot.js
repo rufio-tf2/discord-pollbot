@@ -8,7 +8,9 @@ const {
   endsWithPunctuation,
   fs,
   getPollEmoji,
+  isArray,
   isNil,
+  isString,
   markdown,
   parseArgs,
   splitFirstSpace,
@@ -24,6 +26,13 @@ const FOOTER_JOINER = "  •  ";
 
 const OPTION_SCHEMA = /^(?<emoji>.*) - (?<option>.*) \((?<count>.*)\)$/;
 const POLL_ID_SCHEMA = /POLL_ID:\s(?<pollId>\d+)/;
+
+const formatTimeDistance = (time) => {
+  const date = isString(time) ? new Date(time) : time;
+  return dateFns.formatDistanceToNow(date, {
+    includeSeconds: true,
+  });
+};
 
 const promiseQueue = new PQueue({ concurrency: 1 });
 
@@ -49,7 +58,7 @@ const loadSlapHelpMessage = () => {
   return fs.readFile("./helpMessages/SlapHelpMessage.md", "utf8");
 };
 
-const getEmbed = ({ fields, footer, description = "", timestamp, title }) => {
+const getEmbed = ({ fields, footer, description = "", title }) => {
   const footerObject = footer
     ? {
         text: footer,
@@ -62,13 +71,22 @@ const getEmbed = ({ fields, footer, description = "", timestamp, title }) => {
       description,
       fields,
       footer: footerObject,
-      timestamp,
       title,
     },
   };
 };
 
-const getPollEmbed = ({ id, options, prompt, timestamp, votes = {} }) => {
+const buildLastActionText = ({ action, username }) => {
+  if (["cast", "removed"].includes(action)) {
+    return `Vote ${action} by ${username}.`;
+  }
+
+  if (action === "update") {
+    return `Votes sync'd ${dateFns.format(new Date(), "MMM-dd-yyyy h:mm b")}.`;
+  }
+};
+
+const getPollEmbed = ({ id, options, prompt, votes = {} }) => {
   const sortedOptions = options.sort((optionA, optionB) => {
     return optionA.order - optionB.order;
   });
@@ -89,13 +107,11 @@ const getPollEmbed = ({ id, options, prompt, timestamp, votes = {} }) => {
 
   const pollIdLabeled = `POLL_ID: ${id}`;
 
-  const timestampDistance = timestamp
-    ? `Updated ${dateFns.formatDistanceToNow(new Date(timestamp))} ago.`
+  const lastVoter = votes.lastVoter
+    ? buildLastActionText(votes.lastVoter)
     : undefined;
 
-  const footer = [pollIdLabeled, timestampDistance]
-    .filter(Boolean)
-    .join(FOOTER_JOINER);
+  const footer = [pollIdLabeled, lastVoter].filter(Boolean).join(FOOTER_JOINER);
 
   return getEmbed({
     description: [
@@ -186,7 +202,6 @@ const handlePoll = async (message, args) => {
 
     const pollEmbed = getPollEmbed({
       id: pollId,
-      timestamp: new Date(),
       options,
       prompt,
     });
@@ -208,6 +223,7 @@ const handlePoll = async (message, args) => {
       messageId: pollEmbedMessage.id,
       options,
       prompt: prompt,
+      createdAt: new Date().getTime(),
     });
   } else {
     const helpMessage = await loadPollHelpMessage();
@@ -240,8 +256,8 @@ const handleSlap = async (message, target = "") => {
   }
 };
 
-const getNickname = (reaction, user) => {
-  return reaction.message.guild.member(user.id).displayName;
+const getNicknameFromReaction = (reaction, userId) => {
+  return reaction.message.guild.member(userId).displayName;
 };
 
 const handleUpdatePoll = async (message, pollId) => {
@@ -260,7 +276,7 @@ const handleUpdatePoll = async (message, pollId) => {
 
         const updatedVoters = reaction.users.cache
           .map((user) => {
-            const username = getNickname(reaction, user);
+            const username = getNicknameFromReaction(reaction, user.id);
 
             return username !== pollMessage.author.username ? username : false;
           })
@@ -268,6 +284,10 @@ const handleUpdatePoll = async (message, pollId) => {
 
         return {
           ...acc,
+          lastVoter: {
+            action: "update",
+            username: getNicknameFromReaction(reaction, message.author.id),
+          },
           [emojiReaction]: {
             emoji: emojiReaction,
             voters: updatedVoters,
@@ -279,14 +299,26 @@ const handleUpdatePoll = async (message, pollId) => {
 
     const updatedPoll = {
       ...currentPoll,
+      updatedAt: new Date().getTime(),
       votes: getUpdatedVotesWithReactions(),
     };
+
+    const lastUpdated = markdown.bold(
+      `${formatTimeDistance(
+        currentPoll.updatedAt || currentPoll.createdAt
+      )} ago`
+    );
+
+    const updateMessage = `Poll updated. Previous update ${lastUpdated}.`;
 
     database
       .setPoll(updatedPoll)
       .then(() => database.getPoll(message, pollId))
       .then((poll) => {
         pollMessage.edit(getPollEmbed(poll));
+      })
+      .then(() => {
+        message.channel.send(markdown.italicize(updateMessage));
       });
   }
 };
@@ -317,11 +349,8 @@ const onChangeReaction = async (reaction, username, action) => {
   const currentEmbed = message.embeds[0];
 
   if (username !== message.author.username) {
-    console.log("currentEmbed.footer.text", currentEmbed.footer.text);
     const { pollId } =
       currentEmbed.footer.text.match(POLL_ID_SCHEMA).groups || {};
-
-    console.log("pollId", pollId);
 
     const handleVote =
       action === "remove" ? database.removeVote : database.addVote;
