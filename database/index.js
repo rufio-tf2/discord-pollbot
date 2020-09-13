@@ -1,53 +1,57 @@
 const keyv = require("./keyv");
 
+const { isNil } = require("../util");
+
+const defaultPoll = {
+  channelId: undefined,
+  guildId: undefined,
+  id: undefined,
+  messageId: undefined,
+  options: [],
+  prompt: "",
+  votes: {},
+};
+
 const set = (key, value) => {
   return keyv.set(key, JSON.stringify(value));
 };
 
-const get = (key) => {
+const get = (key, defaultValue) => {
   return keyv.get(key).then((value) => {
-    return value ? JSON.parse(value) : undefined;
-  });
-};
-
-const getDefault = (key, defaultValue) => {
-  return get(key).then((value = defaultValue) => {
-    return value;
+    return value ? JSON.parse(value) : defaultValue;
   });
 };
 
 const getPoll = (message, id) => {
-  return get(message.guildID).then((guildObject = {}) => {
-    const channelObject = guildObject[message.channelID] || {};
+  return get(message.channel.guild.id).then((guildObject = {}) => {
+    const channelObject = guildObject[message.channel.id] || {};
     return channelObject[id] || {};
   });
 };
 
-const setPoll = async (message, id, poll) => {
-  const guildObject = await getDefault(message.guildID, {});
-  const channelObject = guildObject[message.channelID] || {};
+const setPoll = async (poll) => {
+  const { channelId, guildId, id } = poll;
 
-  return set(message.guildID, {
+  const guildObject = await get(guildId, {});
+  const channelObject = guildObject[channelId] || {};
+  const date = new Date();
+
+  return set(guildId, {
     ...guildObject,
-    [message.channelID]: {
+    [channelId]: {
       ...channelObject,
-      [id]: poll,
+      [id]: {
+        ...defaultPoll,
+        timestamp: date.getTime(),
+        ...poll,
+      },
     },
-  });
-};
-
-const storePoll = ({ id, message, options, prompt, votes = {} }) => {
-  return setPoll(message, id, {
-    messageID: message.id,
-    options,
-    pollId: id,
-    prompt,
-    votes,
   });
 };
 
 const addVote = async ({ id, message, reaction, username }) => {
   const currentPoll = await getPoll(message, id);
+
   const voteEmoji = reaction.emoji.name;
 
   const voteData = currentPoll.votes[voteEmoji] || {};
@@ -71,14 +75,14 @@ const addVote = async ({ id, message, reaction, username }) => {
     ...currentPoll,
     votes: updatedVotes,
   };
-  return setPoll(message, id, updatedPoll);
+  return setPoll(updatedPoll);
 };
 
 const removeVote = async ({ id, message, reaction, username }) => {
   const currentPoll = await getPoll(message, id);
   const voteEmoji = reaction.emoji.name;
 
-  const voteData = currentPoll.votes[voteEmoji] || {};
+  const voteData = currentPoll.votes[voteEmoji];
   const { voters = [] } = voteData;
 
   const updatedVoters = voters.filter((voter) => voter !== username);
@@ -92,7 +96,7 @@ const removeVote = async ({ id, message, reaction, username }) => {
     },
   };
 
-  return setPoll(message, id, {
+  return setPoll({
     ...currentPoll,
     votes: updatedVotes,
   });
@@ -103,5 +107,4 @@ module.exports = {
   getPoll,
   removeVote,
   setPoll,
-  storePoll,
 };

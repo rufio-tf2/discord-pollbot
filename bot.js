@@ -1,3 +1,4 @@
+const dateFns = require("date-fns");
 const { MessageEmbed } = require("discord.js");
 const { default: PQueue } = require("p-queue");
 
@@ -19,11 +20,22 @@ const POLL_PREFIXES = ["!poll", "!p"];
 const SLAP_PREFIXES = ["!slap"];
 const UPDATE_POLL_PREFIXES = ["!updatepoll", "!upoll", "!up", "!syncpoll"];
 const POLL_DIVIDER = "-----";
+const FOOTER_JOINER = "  •  ";
 
 const OPTION_SCHEMA = /^(?<emoji>.*) - (?<option>.*) \((?<count>.*)\)$/;
-const POLL_ID_SCHEMA = /POLL_ID:\s(?<pollId>\d+)$/;
+const POLL_ID_SCHEMA = /POLL_ID:\s(?<pollId>\d+)/;
 
 const promiseQueue = new PQueue({ concurrency: 1 });
+
+const defaultPoll = {
+  channelId: undefined,
+  guildId: undefined,
+  id: undefined,
+  messageId: undefined,
+  options: [],
+  prompt: "",
+  votes: {},
+};
 
 const toDescriptionSummary = ({ emoji, option, count = 0 }) => {
   return `${emoji} - ${option} (${count})`;
@@ -37,7 +49,7 @@ const loadSlapHelpMessage = () => {
   return fs.readFile("./helpMessages/SlapHelpMessage.md", "utf8");
 };
 
-const getEmbed = ({ fields, footer, description = "", title }) => {
+const getEmbed = ({ fields, footer, description = "", timestamp, title }) => {
   const footerObject = footer
     ? {
         text: footer,
@@ -50,12 +62,13 @@ const getEmbed = ({ fields, footer, description = "", title }) => {
       description,
       fields,
       footer: footerObject,
+      timestamp,
       title,
     },
   };
 };
 
-const getPollEmbed = ({ options, pollId, prompt, votes = {} }) => {
+const getPollEmbed = ({ id, options, prompt, timestamp, votes = {} }) => {
   const sortedOptions = options.sort((optionA, optionB) => {
     return optionA.order - optionB.order;
   });
@@ -74,9 +87,17 @@ const getPollEmbed = ({ options, pollId, prompt, votes = {} }) => {
     })
     .filter(Boolean);
 
+  const pollIdLabeled = `POLL_ID: ${id}`;
+
+  const timestampDistance = timestamp
+    ? `Updated ${dateFns.formatDistanceToNow(new Date(timestamp))} ago.`
+    : undefined;
+
+  const footer = [pollIdLabeled, timestampDistance]
+    .filter(Boolean)
+    .join(FOOTER_JOINER);
+
   return getEmbed({
-    fields,
-    footer: `POLL_ID: ${pollId}`,
     description: [
       ...options.map((option) =>
         toDescriptionSummary({
@@ -86,6 +107,8 @@ const getPollEmbed = ({ options, pollId, prompt, votes = {} }) => {
       ),
       POLL_DIVIDER,
     ].join("\n"),
+    fields,
+    footer,
     title: prompt,
   });
 };
@@ -155,16 +178,17 @@ const handlePoll = async (message, args) => {
   const hasArgs = args.length > 0;
 
   if (hasArgs) {
-    const [pollPrompt, ...pollOptions] = args;
+    const [prompt, ...pollOptions] = args;
 
     const options = buildOptions(pollOptions);
 
     const pollId = uniqueId();
 
     const pollEmbed = getPollEmbed({
+      id: pollId,
+      timestamp: new Date(),
       options,
-      pollId,
-      prompt: pollPrompt,
+      prompt,
     });
 
     const pollEmbedMessage = await message.channel.send(pollEmbed);
@@ -177,11 +201,13 @@ const handlePoll = async (message, args) => {
       )
     );
 
-    database.storePoll({
+    database.setPoll({
+      channelId: pollEmbedMessage.channel.id,
+      guildId: pollEmbedMessage.channel.guild.id,
       id: pollId,
-      message: pollEmbedMessage,
+      messageId: pollEmbedMessage.id,
       options,
-      prompt: pollPrompt,
+      prompt: prompt,
     });
   } else {
     const helpMessage = await loadPollHelpMessage();
@@ -225,7 +251,7 @@ const handleUpdatePoll = async (message, pollId) => {
 
   if (Object.values(currentPoll).length > 0) {
     const pollMessage = await message.channel.messages.fetch(
-      currentPoll.messageID
+      currentPoll.messageId
     );
 
     const getUpdatedVotesWithReactions = () => {
@@ -257,7 +283,7 @@ const handleUpdatePoll = async (message, pollId) => {
     };
 
     database
-      .setPoll(message, pollId, updatedPoll)
+      .setPoll(updatedPoll)
       .then(() => database.getPoll(message, pollId))
       .then((poll) => {
         pollMessage.edit(getPollEmbed(poll));
@@ -291,8 +317,11 @@ const onChangeReaction = async (reaction, username, action) => {
   const currentEmbed = message.embeds[0];
 
   if (username !== message.author.username) {
+    console.log("currentEmbed.footer.text", currentEmbed.footer.text);
     const { pollId } =
       currentEmbed.footer.text.match(POLL_ID_SCHEMA).groups || {};
+
+    console.log("pollId", pollId);
 
     const handleVote =
       action === "remove" ? database.removeVote : database.addVote;
