@@ -1,9 +1,13 @@
+const dateTime = require("./dateTime");
 const fs = require("./fileSystem");
 const getEmoji = require("./getEmoji");
+const promiseQueue = require("./promiseQueue");
 const util = require("./util");
 
 module.exports = {
-  fs,
+  ...dateTime,
   ...getEmoji,
   ...util,
+  fs,
+  promiseQueue,
 };
