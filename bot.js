@@ -87,18 +87,12 @@ const getEmbed = ({ fields, footer, description = "", timestamp, title }) => {
 };
 
 const buildLastActionText = ({ action, updatedAt, username }) => {
-  // const updatedAtDate = new Date(updatedAt);
-  // const time = dateFns.format(updatedAtDate, "h:mma");
-  // const date = dateFns.format(updatedAtDate, "MMM dd, yyyy");
-
-  // const dateTimeString = `${time} ${date}`;
-
   if (["cast", "removed"].includes(action)) {
-    return `Vote ${action} by ${username}`;
+    return `Vote ${action} by ${username}!`;
   }
 
   if (action === "update") {
-    return `Votes sync'd`;
+    return `Votes sync'd!`;
   }
 };
 
@@ -120,7 +114,7 @@ const getPollEmbed = ({
       return optionA.order - optionB.order;
     });
 
-  const fields = sortedOptions.map((option, index) => {
+  const fields = sortedOptions.map((option) => {
     const vote = votes[option.emoji];
     const { voters } = vote;
 
@@ -388,7 +382,10 @@ const handleUpdatePoll = async (message, pollId) => {
               currentPoll.updatedAt || currentPoll.createdAt
             )} ago.`;
 
-      const updateMessage = `Poll sync'd. ${changesMessage}`;
+      const updateMessage = [
+        `✅ Poll sync'd.`,
+        markdown.italicize(changesMessage),
+      ].join("\n");
 
       database
         .setPoll(updatedPoll)
@@ -397,7 +394,7 @@ const handleUpdatePoll = async (message, pollId) => {
           pollMessage.edit(getPollEmbed(poll));
         })
         .then(() => {
-          message.channel.send(markdown.italicize(updateMessage));
+          message.channel.send(updateMessage);
         });
     }
   }
