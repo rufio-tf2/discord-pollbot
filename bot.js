@@ -8,7 +8,6 @@ const {
   endsWithPunctuation,
   fs,
   getPollEmoji,
-  isArray,
   isNil,
   isString,
   markdown,
@@ -23,6 +22,8 @@ const SLAP_PREFIXES = ["!slap"];
 const UPDATE_POLL_PREFIXES = ["!updatepoll", "!upoll", "!up", "!syncpoll"];
 const POLL_DIVIDER = "-----";
 const FOOTER_JOINER = "  •  ";
+
+const MAX_COLUMNS = 3; // 3 Max, 2 with Thumbnail (https://discordjs.guide/popular-topics/embeds.html#notes)
 
 const OPTION_SCHEMA = /^(?<emoji>.*) - (?<option>.*) \((?<count>.*)\)$/;
 const POLL_ID_SCHEMA = /POLL_ID:\s(?<pollId>\d+)/;
@@ -76,55 +77,80 @@ const getEmbed = ({ fields, footer, description = "", title }) => {
   };
 };
 
-const buildLastActionText = ({ action, username }) => {
+const buildLastActionText = ({ action, updatedAt, username }) => {
+  const updatedAtDate = new Date(updatedAt);
+  const time = dateFns.format(updatedAtDate, "h:mma");
+  const date = dateFns.format(updatedAtDate, "MMM dd, yyyy");
+
+  const dateTimeString = `${time} ${date}`;
+
   if (["cast", "removed"].includes(action)) {
-    return `Vote ${action} by ${username}.`;
+    return `Vote ${action} by ${username} at ${dateTimeString}.`;
   }
 
   if (action === "update") {
-    return `Votes sync'd ${dateFns.format(new Date(), "MMM-dd-yyyy h:mm b")}.`;
+    return `Votes sync'd at ${dateTimeString}.`;
   }
 };
 
-const getPollEmbed = ({ id, options, prompt, votes = {} }) => {
-  const sortedOptions = options.sort((optionA, optionB) => {
-    return optionA.order - optionB.order;
+const getPollEmbed = ({ id, options, prompt, votes = {}, updatedAt }) => {
+  const sortedOptions = options
+    .filter((option) => {
+      const vote = votes[option.emoji] || {};
+      const { voters = [] } = vote;
+      return voters.length > 0;
+    })
+    .sort((optionA, optionB) => {
+      return optionA.order - optionB.order;
+    });
+
+  const fields = sortedOptions.map((option, index) => {
+    const vote = votes[option.emoji];
+    const { voters } = vote;
+
+    return {
+      inline: true,
+      name: option.emoji,
+      value: voters.sort().join("\n"),
+    };
   });
 
-  const fields = sortedOptions
-    .map(({ emoji }) => {
-      const vote = votes[emoji] || {};
-      const { voters = [] } = vote;
-
-      return voters.length
-        ? {
-            name: emoji,
-            value: voters.sort().join("\n"),
-          }
-        : false;
-    })
-    .filter(Boolean);
+  const fieldsWithBuffer =
+    sortedOptions.length % MAX_COLUMNS === 0
+      ? fields
+      : [
+          ...fields,
+          {
+            inline: true,
+            name: "\u200b",
+            value: "\u200b",
+          },
+        ];
 
   const pollIdLabeled = `POLL_ID: ${id}`;
 
   const lastVoter = votes.lastVoter
-    ? buildLastActionText(votes.lastVoter)
+    ? buildLastActionText({ ...votes.lastVoter, updatedAt })
     : undefined;
 
   const footer = [pollIdLabeled, lastVoter].filter(Boolean).join(FOOTER_JOINER);
 
+  const optionsWithCount = options.map((option) => ({
+    ...option,
+    count: votes[option.emoji] ? votes[option.emoji].count : 0,
+  }));
+
+  const description = [
+    ...optionsWithCount.map(toDescriptionSummary),
+    optionsWithCount.some(({ count }) => count > 0) ? POLL_DIVIDER : undefined,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
   return getEmbed({
-    description: [
-      ...options.map((option) =>
-        toDescriptionSummary({
-          ...option,
-          count: votes[option.emoji] ? votes[option.emoji].count : 0,
-        })
-      ),
-      POLL_DIVIDER,
-    ].join("\n"),
-    fields,
-    footer,
+    description,
+    fields: fieldsWithBuffer,
+    footer: [POLL_DIVIDER, footer].join("\n"),
     title: prompt,
   });
 };

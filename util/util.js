@@ -78,6 +78,18 @@ const minutesToMilliseconds = (minutes) => {
   return secondsToMilliseconds(minutes * 60);
 };
 
+const chunk = (array, size = 1) => {
+  const result = [];
+  let index = 0;
+
+  while (index < array.length) {
+    result.push(array.slice(index, size + index));
+    index += size;
+  }
+
+  return result;
+};
+
 // ---
 
 const parseArgs = (content) => {
@@ -172,6 +184,7 @@ const uniqueId = (prefix) => {
 
 module.exports = {
   areArraysEqual,
+  chunk,
   endsWithPunctuation,
   includesPair,
   isArray,

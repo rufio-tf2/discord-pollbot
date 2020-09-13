@@ -1,4 +1,5 @@
 const {
+  chunk,
   endsWithPunctuation,
   includesPair,
   isArray,
@@ -18,6 +19,26 @@ const {
   splitFirstSpace,
   stripLeadingTrailingQuotes,
 } = require("./util");
+
+describe("chunk", () => {
+  test.each([
+    [
+      [["a", "b", "c", "d"], 2],
+      [
+        ["a", "b"],
+        ["c", "d"],
+      ],
+    ],
+    [
+      [["a", "b", "c", "d"], 3],
+      [["a", "b", "c"], ["d"]],
+    ],
+    //
+  ])("%s => %s", (args, expected) => {
+    const actual = chunk(...args);
+    expect(actual).toEqual(expected);
+  });
+});
 
 describe("isArray", () => {
   test.each([
