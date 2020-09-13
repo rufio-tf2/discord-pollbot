@@ -1,6 +1,5 @@
 const keyv = require("./keyv");
-
-const { isNil } = require("../util");
+const get = require("lodash.get");
 
 const defaultPoll = {
   channelId: undefined,
@@ -12,29 +11,30 @@ const defaultPoll = {
   votes: {},
 };
 
-const set = (key, value) => {
+const setDb = (key, value) => {
   return keyv.set(key, JSON.stringify(value));
 };
 
-const get = (key, defaultValue) => {
+const getDb = (key, defaultValue) => {
   return keyv.get(key).then((value) => {
     return value ? JSON.parse(value) : defaultValue;
   });
 };
 
 const getPoll = (message, id) => {
-  return get(message.channel.guild.id).then((guildObject) => {
-    return guildObject?.[message.channel.id]?.[id] ?? {};
+  return getDb(message.channel.guild.id).then((guildObject) => {
+    const poll = get(guildObject, [message.channel.id, id], {});
+    return poll;
   });
 };
 
 const setPoll = async (poll) => {
   const { channelId, guildId, id } = poll;
 
-  const guildObject = await get(guildId, {});
-  const channelObject = guildObject[channelId] ?? {};
+  const guildObject = await getDb(guildId, {});
+  const channelObject = get(guildObject, channelId, {});
 
-  return set(guildId, {
+  return setDb(guildId, {
     ...guildObject,
     [channelId]: {
       ...channelObject,
@@ -51,7 +51,7 @@ const addVote = async ({ id, message, reaction, username }) => {
 
   const voteEmoji = reaction.emoji.name;
 
-  const voteData = currentPoll.votes[voteEmoji] ?? {};
+  const voteData = get(currentPoll, ["votes", voteEmoji], {});
   const { voters = [] } = voteData;
 
   const updatedVoters = voters.includes(username)
@@ -81,7 +81,7 @@ const removeVote = async ({ id, message, reaction, username }) => {
   const currentPoll = await getPoll(message, id);
   const voteEmoji = reaction.emoji.name;
 
-  const voteData = currentPoll.votes[voteEmoji] ?? {};
+  const voteData = get(currentPoll, ["votes", voteEmoji], {});
   const { voters = [] } = voteData;
 
   const updatedVoters = voters.filter((voter) => voter !== username);

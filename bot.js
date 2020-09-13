@@ -1,5 +1,6 @@
 const dateFns = require("date-fns");
 const { MessageEmbed } = require("discord.js");
+const get = require("lodash.get");
 const { default: PQueue } = require("p-queue");
 
 const database = require("./database");
@@ -66,7 +67,7 @@ const loadSlapHelpMessage = () => {
   return fs.readFile("./helpMessages/SlapHelpMessage.md", "utf8");
 };
 
-const getEmbed = ({ fields, footer, description = "", title }) => {
+const getEmbed = ({ fields, footer, description = "", timestamp, title }) => {
   const footerObject = footer
     ? {
         text: footer,
@@ -79,24 +80,25 @@ const getEmbed = ({ fields, footer, description = "", title }) => {
       description,
       fields,
       footer: footerObject,
+      timestamp,
       title,
     },
   };
 };
 
 const buildLastActionText = ({ action, updatedAt, username }) => {
-  const updatedAtDate = new Date(updatedAt);
-  const time = dateFns.format(updatedAtDate, "h:mma");
-  const date = dateFns.format(updatedAtDate, "MMM dd, yyyy");
+  // const updatedAtDate = new Date(updatedAt);
+  // const time = dateFns.format(updatedAtDate, "h:mma");
+  // const date = dateFns.format(updatedAtDate, "MMM dd, yyyy");
 
-  const dateTimeString = `${time} ${date}`;
+  // const dateTimeString = `${time} ${date}`;
 
   if (["cast", "removed"].includes(action)) {
-    return `Vote ${action} by ${username} at ${dateTimeString}.`;
+    return `Vote ${action} by ${username}`;
   }
 
   if (action === "update") {
-    return `Votes sync'd at ${dateTimeString}.`;
+    return `Votes sync'd`;
   }
 };
 
@@ -110,7 +112,7 @@ const getPollEmbed = ({
 }) => {
   const sortedOptions = options
     .filter((option) => {
-      const vote = votes[option.emoji] ?? {};
+      const vote = get(votes, option.emoji, {});
       const { voters = [] } = vote;
       return voters.length > 0;
     })
@@ -307,7 +309,7 @@ const getNicknameFromReaction = (reaction, userId) => {
 };
 
 const getVoteCount = (poll, emoji) => {
-  return poll?.votes?.[emoji]?.count ?? 0;
+  return get(poll, ["votes", emoji, "count"], 0);
 };
 
 const handleUpdatePoll = async (message, pollId) => {
@@ -341,7 +343,7 @@ const handleUpdatePoll = async (message, pollId) => {
 
           return {
             ...acc,
-            lastVoter: acc.lastVoter ?? {
+            lastVoter: acc.lastVoter || {
               action: "update",
               username: getNicknameFromReaction(reaction, message.author.id),
             },
@@ -365,7 +367,7 @@ const handleUpdatePoll = async (message, pollId) => {
         ),
       };
 
-      const changes = Object.values(updatedPoll?.votes).reduce(
+      const changes = Object.values(updatedPoll.votes).reduce(
         (acc, { count, emoji }) => {
           const currentVoteCount = getVoteCount(currentPoll, emoji);
           return currentVoteCount !== count
@@ -428,7 +430,7 @@ const onChangeReaction = async (reaction, username, action) => {
 
   if (username !== message.author.username) {
     const { pollId } =
-      currentEmbed.footer.text.match(POLL_ID_SCHEMA).groups ?? {};
+      currentEmbed.footer.text.match(POLL_ID_SCHEMA).groups || {};
 
     const handleVote =
       action === "remove" ? database.removeVote : database.addVote;
