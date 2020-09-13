@@ -3,8 +3,8 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 const { Client } = require("discord.js");
-
 const { onChangeReaction, onMessage } = require("./bot");
+const { getNicknameFromReaction } = require("./bot/discordUtils");
 
 const TOKEN = process.env.DISCORD_TOKEN;
 
@@ -18,17 +18,13 @@ client.on("message", (message) => {
   onMessage(message);
 });
 
-const getNickname = async (reaction, user) => {
-  return reaction.message.guild.member(user.id).displayName;
-};
-
 client.on("messageReactionAdd", async (reaction, user) => {
-  const username = await getNickname(reaction, user);
+  const username = getNicknameFromReaction(reaction, user.id);
   onChangeReaction(reaction, username, "add");
 });
 
 client.on("messageReactionRemove", async (reaction, user) => {
-  const username = await getNickname(reaction, user);
+  const username = getNicknameFromReaction(reaction, user.id);
   onChangeReaction(reaction, username, "remove");
 });
 
