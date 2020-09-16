@@ -12,12 +12,10 @@ const defaultPoll = {
 };
 
 const setDb = (key, value) => {
-  console.log("@@SET", { key, value });
   return keyv.set(key, JSON.stringify(value));
 };
 
 const getDb = (key, defaultValue) => {
-  console.log("@@GET", key);
   return keyv.get(key).then((value) => {
     return value ? JSON.parse(value) : defaultValue;
   });
