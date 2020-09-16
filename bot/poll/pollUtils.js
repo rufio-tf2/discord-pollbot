@@ -4,6 +4,10 @@ const { getEmbed } = require("../discordUtils");
 const { emojisByKey, getPollEmoji } = require("../../util");
 const { MAX_EMBED_COLUMNS } = require("../discordUtils");
 
+const alphabeticallyAscending = (stringA, stringB) => {
+  return stringA.toLowerCase().localeCompare(stringB.toLowerCase());
+};
+
 const POLL_DIVIDER = "-----";
 const FOOTER_JOINER = "  •  ";
 
@@ -50,7 +54,7 @@ const pollToEmbed = ({
     return {
       inline: true,
       name: option.emoji,
-      value: voters.sort().join("\n"),
+      value: voters.sort(alphabeticallyAscending).join("\n"),
     };
   });
 
