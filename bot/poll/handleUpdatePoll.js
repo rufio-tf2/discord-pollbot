@@ -18,7 +18,7 @@ const handleUpdatePoll = async (message, pollId) => {
     }
 
     if (pollMessage) {
-      const getUpdatedVotesWithReactions = async () => {
+      const getUpdatedVotesWithReactions = () => {
         return pollMessage.reactions.cache.reduce((acc, reaction) => {
           const emojiReaction = reaction.emoji.name;
 
@@ -47,7 +47,7 @@ const handleUpdatePoll = async (message, pollId) => {
         }, {});
       };
 
-      const updatedVotes = await getUpdatedVotesWithReactions();
+      const updatedVotes = getUpdatedVotesWithReactions();
 
       const updatedPoll = {
         ...currentPoll,
