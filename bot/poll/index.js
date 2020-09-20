@@ -1,6 +1,6 @@
 const handlePoll = require("./handlePoll");
 const handleUpdatePoll = require("./handleUpdatePoll");
-const handleVote = require("./handleVote");
+const { handleAddVote, handleRemoveVote } = require("./handleVote");
 
 const POLL_PREFIXES = ["!poll", "!p"];
 const UPDATE_POLL_PREFIXES = [
@@ -13,9 +13,10 @@ const UPDATE_POLL_PREFIXES = [
 ];
 
 module.exports = {
+  handleAddVote,
   handlePoll,
+  handleRemoveVote,
   handleUpdatePoll,
-  handleVote,
   POLL_PREFIXES,
   UPDATE_POLL_PREFIXES,
 };

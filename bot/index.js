@@ -1,7 +1,8 @@
 const {
+  handleAddVote,
   handlePoll,
+  handleRemoveVote,
   handleUpdatePoll,
-  handleVote,
   POLL_PREFIXES,
   UPDATE_POLL_PREFIXES,
 } = require("./poll");
@@ -34,6 +35,7 @@ const onChangeReaction = async (reaction, username, action) => {
 };
 
 module.exports = {
-  onChangeReaction,
+  handleAddVote,
+  handleRemoveVote,
   onMessage,
 };
