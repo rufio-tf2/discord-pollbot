@@ -1,5 +1,5 @@
 const database = require("../../database");
-const { fs, promiseQueue, underDash, uniqueId } = require("../../util");
+const { fs, promiseQueue, underDash } = require("../../util");
 const { buildOptions, pollToEmbed } = require("./pollUtils");
 const { getEmbed } = require("../discordUtils");
 
@@ -17,10 +17,10 @@ const handlePoll = async (message, args) => {
 
     const options = buildOptions(pollOptions);
 
-    const pollId = uniqueId();
+    const createdAt = new Date().getTime();
 
     const pollEmbed = pollToEmbed({
-      id: pollId,
+      createdAt,
       options,
       prompt,
     });
@@ -38,12 +38,11 @@ const handlePoll = async (message, args) => {
 
       database.setPoll({
         channelId: pollEmbedMessage.channel.id,
+        createdAt,
         guildId: pollEmbedMessage.channel.guild.id,
-        id: pollId,
         messageId: pollEmbedMessage.id,
         options,
-        prompt: prompt,
-        createdAt: new Date().getTime(),
+        prompt,
       });
     } catch (error) {
       console.error("Error saving new poll. ", error);

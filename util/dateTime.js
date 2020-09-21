@@ -2,13 +2,11 @@ const dateFns = require("date-fns");
 
 const { isString } = require("./util");
 
-const formatTimeDistance = (time) => {
+const formatDateShort = (time) => {
   const date = isString(time) ? new Date(time) : time;
-  return dateFns.formatDistanceToNow(date, {
-    includeSeconds: true,
-  });
+  return dateFns.format(date, "MM/dd/yyyy");
 };
 
 module.exports = {
-  formatTimeDistance,
+  formatDateShort,
 };
