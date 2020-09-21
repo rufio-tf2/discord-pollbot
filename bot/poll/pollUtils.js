@@ -29,14 +29,9 @@ const buildLastActionText = ({ action, username }) => {
   }
 };
 
-const pollToEmbed = ({
-  id,
-  lastVoter,
-  options,
-  prompt,
-  votes = {},
-  updatedAt,
-}) => {
+const pollToEmbed = (poll) => {
+  const { id, lastVoter, options, prompt, votes = {}, updatedAt } = poll;
+
   const sortedOptions = options
     .filter((option) => {
       const vote = get(votes, option.emoji, {});
@@ -82,7 +77,7 @@ const pollToEmbed = ({
 
   const optionsWithCount = options.map((option) => ({
     ...option,
-    count: votes[option.emoji] ? votes[option.emoji].count : 0,
+    count: getVoteCount(poll, option.emoji),
   }));
 
   const description = [
