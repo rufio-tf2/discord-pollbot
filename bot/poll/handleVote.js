@@ -23,8 +23,6 @@ const fetchPollFromReaction = async (reaction) => {
       id: Number(id),
     };
 
-    console.log("pollData", pollData);
-
     return database.getPoll(pollData);
   } catch (error) {
     console.error(
@@ -52,7 +50,7 @@ const handleAddVote = async (reaction, user) => {
   }
 
   if (!poll) {
-    console.log("[handleAddVote] No poll found.");
+    console.error("[handleAddVote] No poll found.");
     return;
   }
 
@@ -101,7 +99,7 @@ const handleRemoveVote = async (reaction, user) => {
   }
 
   if (!poll) {
-    console.log("[handleRemoveVote] No poll found.");
+    console.error("[handleRemoveVote] No poll found.");
     return;
   }
 
