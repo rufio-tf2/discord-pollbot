@@ -5,7 +5,6 @@ const keyv = require("./keyv");
 const defaultPoll = {
   channelId: undefined,
   guildId: undefined,
-  id: undefined,
   messageId: undefined,
   options: [],
   prompt: "",
@@ -23,15 +22,15 @@ const setDb = (key, value) => {
 };
 
 const getPoll = (pollData) => {
-  const { channelId, guildId, id } = pollData;
+  const { channelId, guildId, messageId } = pollData;
 
   return getDb(guildId).then((guildObject) => {
-    return get(guildObject, [channelId, id], {});
+    return get(guildObject, [channelId, messageId], {});
   });
 };
 
 const setPoll = async (poll) => {
-  const { channelId, guildId, id } = poll;
+  const { channelId, guildId, messageId } = poll;
 
   const guildObject = await getDb(guildId, {});
   const channelObject = get(guildObject, channelId, {});
@@ -40,7 +39,7 @@ const setPoll = async (poll) => {
     ...guildObject,
     [channelId]: {
       ...channelObject,
-      [id]: {
+      [messageId]: {
         ...defaultPoll,
         ...poll,
       },

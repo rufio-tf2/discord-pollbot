@@ -1,15 +1,15 @@
 const get = require("lodash.get");
 
 const { getEmbed } = require("../discordUtils");
-const { emojisByKey, getPollEmoji } = require("../../util");
+const { formatDateShort, emojisByKey, getPollEmoji } = require("../../util");
 const { MAX_EMBED_COLUMNS } = require("../discordUtils");
+
+const POLL_DIVIDER = "-----";
+const FOOTER_JOINER = "  •  ";
 
 const alphabeticallyAscending = (stringA, stringB) => {
   return stringA.toLowerCase().localeCompare(stringB.toLowerCase());
 };
-
-const POLL_DIVIDER = "-----";
-const FOOTER_JOINER = "  •  ";
 
 const getVoteCount = (poll, emoji) => {
   return get(poll, ["votes", emoji, "count"], 0);
@@ -19,18 +19,12 @@ const toDescriptionSummary = ({ emoji, option, count = 0 }) => {
   return `${emoji} - ${option} (${count})`;
 };
 
-const buildLastActionText = ({ action, username }) => {
-  if (["cast", "removed"].includes(action)) {
-    return `Last vote by ${username}`;
-  }
-
-  if (action === "update") {
-    return `Votes sync'd`;
-  }
+const buildLastActionText = ({ username }) => {
+  return `Last vote by ${username}`;
 };
 
 const pollToEmbed = (poll) => {
-  const { id, lastVoter, options, prompt, votes = {}, updatedAt } = poll;
+  const { createdAt, lastVoter, options, prompt, votes = {}, updatedAt } = poll;
 
   const sortedOptions = options
     .filter((option) => {
@@ -65,13 +59,9 @@ const pollToEmbed = (poll) => {
           },
         ];
 
-  const pollIdLabeled = `POLL_ID: ${id}`;
+  const lastVoterText = lastVoter ? buildLastActionText(lastVoter) : undefined;
 
-  const lastVoterText = lastVoter
-    ? buildLastActionText({ ...lastVoter, updatedAt })
-    : undefined;
-
-  const footer = [pollIdLabeled, lastVoterText]
+  const footer = [lastVoterText, formatDateShort(updatedAt || createdAt)]
     .filter(Boolean)
     .join(FOOTER_JOINER);
 
