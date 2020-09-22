@@ -7,10 +7,10 @@ const {
 
 describe("endsWithPunctuation", () => {
   test.each([
-    ["Ends with punctuation.", true],
-    ["Ends with punctuation?", true],
-    ["Ends with punctuation!", true],
-    ["Ends with punctuation", false],
+    ["The cat's in my lap.", true],
+    ["The cat's in my lap?", true],
+    ["The cat's in my lap!", true],
+    ["The cat's in my lap", false],
   ])("%s => %s", (arg, expected) => {
     const actual = endsWithPunctuation(arg);
     expect(actual).toEqual(expected);
@@ -56,6 +56,7 @@ describe("stripLeadingTrailingQuotes", () => {
     [`"double quotes"`, `double quotes`],
     [`'single quotes'`, `single quotes`],
     [`"leaves inner 'quotes'"`, `leaves inner 'quotes'`],
+    [`'leaves inner "quotes"'`, `leaves inner "quotes"`],
   ])("%s => %s", (arg, expected) => {
     const actual = stripLeadingTrailingQuotes(arg);
     expect(actual).toEqual(expected);
