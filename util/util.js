@@ -1,3 +1,7 @@
+const isNumber = (v) => {
+  return typeof v === "number";
+};
+
 const isString = (v) => {
   return typeof v === "string";
 };
@@ -52,6 +56,7 @@ const markdown = {
 
 module.exports = {
   endsWithPunctuation,
+  isNumber,
   isString,
   isStringEmpty,
   mapString,

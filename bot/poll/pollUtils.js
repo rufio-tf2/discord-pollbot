@@ -1,11 +1,128 @@
 const get = require("lodash.get");
 
 const { getEmbed } = require("../discordUtils");
-const { formatDateShort, emojisByKey, getPollEmoji } = require("../../util");
-const { MAX_EMBED_COLUMNS } = require("../discordUtils");
+const {
+  emojisByKey,
+  formatDateShort,
+  getPollEmoji,
+  isNumber,
+  isString,
+} = require("../../util");
+const {
+  getNicknameFromReaction,
+  isMe,
+  MAX_EMBED_COLUMNS,
+} = require("../discordUtils");
 
 const POLL_DIVIDER = "-----";
 const FOOTER_JOINER = "  •  ";
+const BLANK_CHAR = "\u200b";
+
+const OPTION_SCHEMA = /^(?<emoji>.*) - (?<option>.*) \((?<count>.*)\)$/;
+
+const isOptionString = (optionString) => {
+  const { count, emoji, option } =
+    optionString.match(OPTION_SCHEMA).groups || {};
+  return isString(emoji) && isString(option) && isNumber(parseInt(count, 10));
+};
+
+const isPollMessage = (message) => {
+  const hasEmbed = !!message.embeds.length > 0;
+
+  if (hasEmbed) {
+    const embed = message.embeds[0];
+
+    const potentialOptions = embed.description.split("\n");
+    const hasTwoPotentialOptions = potentialOptions.length >= 2;
+    const [optionA, optionB] = potentialOptions;
+
+    return hasTwoPotentialOptions && [optionA, optionB].every(isOptionString);
+  }
+
+  return false;
+};
+
+const isReactionToPoll = (reaction) => {
+  return isMe(reaction.message.author.id) && isPollMessage(reaction.message);
+};
+
+const parseOptionString = (optionString) => {
+  const match = optionString.match(OPTION_SCHEMA);
+  const { count, emoji, option } = match ? match.groups : {};
+
+  return { count, emoji, option };
+};
+
+const buildOptionsFromEmbed = (embed) => {
+  const options = embed.description
+    .split("\n")
+    .map(parseOptionString)
+    .filter(({ option = "" }) => option.length > 0);
+
+  return options;
+};
+
+const buildVotesFromMessage = async (message) => {
+  return await message.reactions.cache.reduce(async (accumulator, reaction) => {
+    const emojiReaction = reaction.emoji.name;
+
+    try {
+      await reaction.users.fetch();
+    } catch {
+      console.error(
+        "[buildVotesFromMessage] Error fetching users for reaction",
+        reaction.emoji.name
+      );
+      return accumulator;
+    }
+
+    const voters = reaction.users.cache
+      .map((user) => {
+        const username = getNicknameFromReaction(reaction, user.id);
+        return isMe(user.id) ? false : username;
+      })
+      .filter(Boolean);
+
+    return voters.length > 0
+      ? {
+          ...(await accumulator),
+          [emojiReaction]: {
+            count: voters.length,
+            emoji: emojiReaction,
+            voters,
+          },
+        }
+      : accumulator;
+  }, {});
+};
+
+const buildPollFromMessage = async (message) => {
+  const hasEmbed = !!message.embeds.length > 0;
+
+  if (hasEmbed) {
+    const embed = message.embeds[0];
+
+    return {
+      channelId: message.channel.id,
+      createdAt: message.createdTimestamp,
+      guildId: message.channel.guild.id,
+      messageId: message.id,
+      options: buildOptionsFromEmbed(embed).map(({ emoji, option }, index) => {
+        return {
+          emoji,
+          option,
+          order: index,
+        };
+      }),
+      prompt: embed.title,
+      votes: await buildVotesFromMessage(message),
+      updatedAt:
+        message.editedTimestamp > 0 ? message.editedTimestamp : undefined,
+    };
+  }
+
+  return;
+};
 
 const alphabeticallyAscending = (stringA, stringB) => {
   return stringA.toLowerCase().localeCompare(stringB.toLowerCase());
@@ -54,8 +171,8 @@ const pollToEmbed = (poll) => {
           ...fields,
           {
             inline: true,
-            name: "\u200b",
-            value: "\u200b",
+            name: BLANK_CHAR,
+            value: BLANK_CHAR,
           },
         ];
 
@@ -148,6 +265,8 @@ const buildOptions = (pollOptions) => {
 
 module.exports = {
   buildOptions,
-  pollToEmbed,
+  buildPollFromMessage,
   getVoteCount,
+  isReactionToPoll,
+  pollToEmbed,
 };

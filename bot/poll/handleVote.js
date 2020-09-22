@@ -1,8 +1,12 @@
 const get = require("lodash.get");
 
 const database = require("../../database");
-const { pollToEmbed } = require("./pollUtils");
-const { getNicknameFromReaction } = require("../discordUtils");
+const {
+  buildPollFromMessage,
+  isReactionToPoll,
+  pollToEmbed,
+} = require("./pollUtils");
+const { getNicknameFromReaction, isMe } = require("../discordUtils");
 
 const fetchPollFromReaction = async (reaction) => {
   const message = reaction.message;
@@ -28,99 +32,37 @@ const fetchPollFromReaction = async (reaction) => {
   }
 };
 
-const handleAddVote = async (reaction, user) => {
-  const username = getNicknameFromReaction(reaction, user.id);
+onMessageReaction = async (reaction, user) => {
+  const isReactionMine = isMe(user.id);
 
-  if (username === reaction.message.author.username) return;
+  if (!isReactionToPoll(reaction) || isReactionMine) return;
 
-  let poll;
+  const constructedPoll = await buildPollFromMessage(reaction.message);
 
-  try {
-    poll = await fetchPollFromReaction(reaction);
-  } catch (error) {
-    console.error(`[handleAddVote] Error adding vote by ${username}.`);
-  }
-
-  if (!poll || !poll.prompt || !poll.prompt.length > 0) {
-    console.error("[handleAddVote] No poll found.");
+  if (!constructedPoll) {
+    console.error(
+      "[onMessageReaction] Error constructing poll from message",
+      reaction.message.id
+    );
     return;
   }
 
-  const voteEmoji = reaction.emoji.name;
-
-  const voteData = get(poll, ["votes", voteEmoji], {});
-  const { voters = [] } = voteData;
-
-  const updatedVoters = voters.includes(username)
-    ? voters
-    : [...voters, username];
-
-  const updatedVotes = {
-    ...poll.votes,
-    [voteEmoji]: {
-      ...voteData,
-      emoji: voteEmoji,
-      voters: updatedVoters,
-      count: updatedVoters.length,
-    },
+  const poll = {
+    ...constructedPoll,
+    lastVoter: { username: getNicknameFromReaction(reaction, user.id) },
   };
 
-  const updatedPoll = {
-    ...poll,
-    lastVoter: { action: "cast", username },
-    updatedAt: new Date().getTime(),
-    votes: updatedVotes,
-  };
-
-  return database.setPoll(updatedPoll).then(() => {
-    reaction.message.edit(pollToEmbed(updatedPoll));
+  return database.setPoll(poll).then(() => {
+    reaction.message.edit(pollToEmbed(poll));
   });
 };
 
+const handleAddVote = (reaction, user) => {
+  return onMessageReaction(reaction, user);
+};
+
 const handleRemoveVote = async (reaction, user) => {
-  const username = getNicknameFromReaction(reaction, user.id);
-
-  if (username === reaction.message.author.username) return;
-
-  let poll;
-
-  try {
-    poll = await fetchPollFromReaction(reaction);
-  } catch (error) {
-    console.error(`[handleRemoveVote] Error removing vote by ${username}.`);
-  }
-
-  if (!poll) {
-    console.error("[handleRemoveVote] No poll found.");
-    return;
-  }
-
-  const voteEmoji = reaction.emoji.name;
-
-  const voteData = get(poll, ["votes", voteEmoji], {});
-  const { voters = [] } = voteData;
-
-  const updatedVoters = voters.filter((voter) => voter !== username);
-
-  const updatedVotes = {
-    ...poll.votes,
-    [voteEmoji]: {
-      ...voteData,
-      voters: updatedVoters,
-      count: updatedVoters.length,
-    },
-  };
-
-  const updatedPoll = {
-    ...poll,
-    lastVoter: { action: "removed", username },
-    updatedAt: new Date().getTime(),
-    votes: updatedVotes,
-  };
-
-  return database.setPoll(updatedPoll).then(() => {
-    reaction.message.edit(pollToEmbed(updatedPoll));
-  });
+  return onMessageReaction(reaction, user);
 };
 
 module.exports = {
