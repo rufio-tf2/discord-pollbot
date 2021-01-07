@@ -18,7 +18,7 @@ const POLL_DIVIDER = "-----";
 const FOOTER_JOINER = "  •  ";
 const BLANK_CHAR = "\u200b";
 
-const OPTION_SCHEMA = /^(?<emoji>.*?) - (?<option>.*?) \((?<count>.*)\)$/;
+const OPTION_SCHEMA = /^(?<emoji>[^-]*) - (?<option>.*) \((?<count>.*)\)$/;
 
 const isOptionString = (optionString) => {
   const { count, emoji, option } =
@@ -88,7 +88,7 @@ const buildVotesFromMessage = async (message) => {
           ...(await accumulator),
           [emojiReaction]: {
             count: voters.length,
-            emoji: emojiReaction,g
+            emoji: emojiReaction,
             voters,
           },
         }
@@ -258,7 +258,7 @@ const buildOptions = (pollOptions) => {
     ];
   } else {
     return pollOptions.map((option, index) => {
-      return { option, order: index, emoji: getPollEmoji(index + 1) };
+      return { emoji: getPollEmoji(index + 1), option, order: index };
     });
   }
 };

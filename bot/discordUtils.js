@@ -19,9 +19,9 @@ const fetchPartialReaction = async (reaction) => {
 };
 
 const toEmbedObject = ({
+  description = "",
   fields,
   footer,
-  description = "",
   timestamp,
   title,
 }) => {
