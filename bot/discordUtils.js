@@ -51,7 +51,7 @@ const getNicknameFromReaction = (reaction, userId) => {
     (member) => member.id === userId
   );
 
-  return user.displayName;
+  return user ? user.displayName : "Unidentified Toaster";
 };
 
 const isMe = (id) => {
