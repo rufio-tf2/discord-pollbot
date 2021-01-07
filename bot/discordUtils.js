@@ -18,7 +18,13 @@ const fetchPartialReaction = async (reaction) => {
   }
 };
 
-const getEmbed = ({ fields, footer, description = "", timestamp, title }) => {
+const toEmbedObject = ({
+  fields,
+  footer,
+  description = "",
+  timestamp,
+  title,
+}) => {
   const footerObject = footer
     ? {
         text: footer,
@@ -47,7 +53,7 @@ const isMe = (id) => {
 
 module.exports = {
   fetchPartialReaction,
-  getEmbed,
+  toEmbedObject,
   getNicknameFromReaction,
   isMe,
   MAX_EMBED_COLUMNS,

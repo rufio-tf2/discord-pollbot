@@ -1,5 +1,5 @@
 const { endsWithPunctuation, fs, markdown, underDash } = require("../util");
-const { getEmbed } = require("./discordUtils");
+const { toEmbedObject } = require("./discordUtils");
 
 const SLAP_PREFIXES = ["!slap"];
 
@@ -22,7 +22,7 @@ const handleSlap = async (message, target = "") => {
     const helpMessage = await loadSlapHelpMessage();
 
     message.channel.send(
-      getEmbed({
+      toEmbedObject({
         description: helpMessage,
         title: underDash(`Slap Command`),
       })
