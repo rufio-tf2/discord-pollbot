@@ -1,6 +1,6 @@
 const get = require("lodash.get");
 
-const { getEmbed } = require("../discordUtils");
+const { toEmbedObject } = require("../discordUtils");
 const {
   emojisByKey,
   formatDateShort,
@@ -88,7 +88,7 @@ const buildVotesFromMessage = async (message) => {
           ...(await accumulator),
           [emojiReaction]: {
             count: voters.length,
-            emoji: emojiReaction,
+            emoji: emojiReaction,g
             voters,
           },
         }
@@ -194,7 +194,7 @@ const pollToEmbed = (poll) => {
     .filter(Boolean)
     .join("\n");
 
-  return getEmbed({
+  return toEmbedObject({
     description,
     fields: fieldsWithBuffer,
     footer: [POLL_DIVIDER, footer].join("\n"),

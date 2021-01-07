@@ -1,7 +1,7 @@
 const database = require("../../database");
 const { fs, promiseQueue, underDash } = require("../../util");
 const { buildOptions, pollToEmbed } = require("./pollUtils");
-const { getEmbed } = require("../discordUtils");
+const { toEmbedObject } = require("../discordUtils");
 
 const loadPollHelpMessage = () => {
   return fs.readFile("./helpMessages/PollHelpMessage.md", "utf8");
@@ -49,7 +49,7 @@ const handlePoll = async (message, args) => {
     const helpMessage = await loadPollHelpMessage();
 
     message.channel.send(
-      getEmbed({
+      toEmbedObject({
         description: helpMessage,
         title: underDash("Poll Command"),
       })
