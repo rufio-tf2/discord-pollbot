@@ -23,7 +23,7 @@ onMessageReaction = async (reaction, user) => {
     return;
   }
 
-  const userDisplayName = getNicknameFromReaction(reaction, user.id);
+  const userDisplayName = await getNicknameFromReaction(reaction, user.id);
 
   const poll = {
     ...constructedPoll,

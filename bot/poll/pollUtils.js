@@ -76,12 +76,19 @@ const buildVotesFromMessage = async (message) => {
       return accumulator;
     }
 
-    const voters = reaction.users.cache
-      .map((user) => {
-        const username = getNicknameFromReaction(reaction, user.id);
-        return isMe(user.id) ? false : username;
-      })
-      .filter(Boolean);
+    const voterIds = reaction.users.cache
+      .map((user) => user.id)
+      .filter((id) => !isMe(id));
+
+    const buildVoters = async () => {
+      return Promise.all(
+        voterIds.map((voterId) => {
+          return getNicknameFromReaction(reaction, voterId);
+        })
+      );
+    };
+
+    const voters = await buildVoters();
 
     return voters.length > 0
       ? {
