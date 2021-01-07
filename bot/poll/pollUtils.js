@@ -205,7 +205,7 @@ const pollToEmbed = (poll) => {
 const buildOptions = (pollOptions) => {
   const isYesNo =
     pollOptions.length <= 3 &&
-    pollOptions.some((option) =>
+    pollOptions.every((option) =>
       ["yes", "no", "maybe"].includes(option.toLowerCase())
     );
 
