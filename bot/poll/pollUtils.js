@@ -18,7 +18,7 @@ const POLL_DIVIDER = "-----";
 const FOOTER_JOINER = "  •  ";
 const BLANK_CHAR = "\u200b";
 
-const OPTION_SCHEMA = /^(?<emoji>.*) - (?<option>.*) \((?<count>.*)\)$/;
+const OPTION_SCHEMA = /^(?<emoji>.*?) - (?<option>.*?) \((?<count>.*)\)$/;
 
 const isOptionString = (optionString) => {
   const { count, emoji, option } =
