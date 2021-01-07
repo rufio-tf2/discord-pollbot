@@ -44,7 +44,14 @@ const toEmbedObject = ({
 };
 
 const getNicknameFromReaction = (reaction, userId) => {
-  return reaction.message.guild.member(userId).displayName;
+  // If async is necessary:
+  // const user = await reaction.message.guild.members.fetch(userId);
+
+  const user = reaction.message.guild.members.cache.find(
+    (member) => member.id === userId
+  );
+
+  return user.displayName;
 };
 
 const isMe = (id) => {

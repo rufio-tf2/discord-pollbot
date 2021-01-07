@@ -4,10 +4,7 @@ if (process.env.NODE_ENV !== "production") {
 
 const { Client } = require("discord.js");
 const { handleAddVote, handleRemoveVote, onMessage } = require("./bot");
-const {
-  fetchPartialReaction,
-  getNicknameFromReaction,
-} = require("./bot/discordUtils");
+const { fetchPartialReaction } = require("./bot/discordUtils");
 
 const TOKEN = process.env.DISCORD_TOKEN;
 
@@ -26,11 +23,13 @@ client.on("message", (message) => {
 
 client.on("messageReactionAdd", async (reaction, user) => {
   await fetchPartialReaction(reaction);
+
   handleAddVote(reaction, user);
 });
 
 client.on("messageReactionRemove", async (reaction, user) => {
   await fetchPartialReaction(reaction);
+
   handleRemoveVote(reaction, user);
 });
 

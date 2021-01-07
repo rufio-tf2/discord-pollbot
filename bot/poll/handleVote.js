@@ -23,9 +23,11 @@ onMessageReaction = async (reaction, user) => {
     return;
   }
 
+  const userDisplayName = getNicknameFromReaction(reaction, user.id);
+
   const poll = {
     ...constructedPoll,
-    lastVoter: { username: getNicknameFromReaction(reaction, user.id) },
+    lastVoter: { username: userDisplayName },
   };
 
   reaction.message.edit(pollToEmbed(poll));
