@@ -3,8 +3,6 @@ const { fs, promiseQueue, underDash } = require("../../util");
 const { buildOptions, pollToEmbed } = require("./pollUtils");
 const { getEmbed } = require("../discordUtils");
 
-const OPTION_SCHEMA = /^(?<emoji>.*) - (?<option>.*) \((?<count>.*)\)$/;
-
 const loadPollHelpMessage = () => {
   return fs.readFile("./helpMessages/PollHelpMessage.md", "utf8");
 };
