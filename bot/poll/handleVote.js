@@ -28,16 +28,16 @@ onMessageReaction = async (reaction, user) => {
     lastVoter: { username: getNicknameFromReaction(reaction, user.id) },
   };
 
-  return database.setPoll(poll).then(() => {
-    reaction.message.edit(pollToEmbed(poll));
-  });
+  reaction.message.edit(pollToEmbed(poll));
+
+  return database.setPoll(poll);
 };
 
 const handleAddVote = (reaction, user) => {
   return onMessageReaction(reaction, user);
 };
 
-const handleRemoveVote = async (reaction, user) => {
+const handleRemoveVote = (reaction, user) => {
   return onMessageReaction(reaction, user);
 };
 
