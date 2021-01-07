@@ -12,7 +12,9 @@ const {
 const TOKEN = process.env.DISCORD_TOKEN;
 
 // Partials for old messages -- https://discordjs.guide/popular-topics/reactions.html#listening-for-reactions-on-old-messages
-const client = new Client({ partials: ["MESSAGE", "REACTION"] });
+const client = new Client({
+  partials: ["CHANNEL", "GUILD_MEMBER", "MESSAGE", "REACTION", "USER"],
+});
 
 client.once("ready", () => {
   console.log("Bot ready");
