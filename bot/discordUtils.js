@@ -54,7 +54,7 @@ const getNicknameFromReaction = async (reaction, userId) => {
 };
 
 const isMe = (id) => {
-  return id === process.env.DISCORD_USER_ID;
+  return id === process.env.BOT_APPLICATION_ID;
 };
 
 module.exports = {

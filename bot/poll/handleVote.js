@@ -1,6 +1,5 @@
 const get = require("lodash.get");
 
-const database = require("../../database");
 const {
   buildPollFromMessage,
   isReactionToPoll,
@@ -11,7 +10,9 @@ const { getNicknameFromReaction, isMe } = require("../discordUtils");
 onMessageReaction = async (reaction, user) => {
   const isReactionMine = isMe(user.id);
 
-  if (!isReactionToPoll(reaction) || isReactionMine) return;
+  if (!isReactionToPoll(reaction) || isReactionMine) {
+    return;
+  }
 
   const constructedPoll = await buildPollFromMessage(reaction.message);
 
@@ -31,8 +32,6 @@ onMessageReaction = async (reaction, user) => {
   };
 
   reaction.message.edit(pollToEmbed(poll));
-
-  return database.setPoll(poll);
 };
 
 const handleAddVote = (reaction, user) => {
