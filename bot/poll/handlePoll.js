@@ -1,4 +1,3 @@
-const database = require("../../database");
 const { fs, promiseQueue, underDash } = require("../../util");
 const { buildOptions, pollToEmbed } = require("./pollUtils");
 const { toEmbedObject } = require("../discordUtils");
@@ -33,15 +32,6 @@ const handlePoll = async (message, args) => {
           })
         )
       );
-
-      database.setPoll({
-        channelId: pollEmbedMessage.channel.id,
-        createdAt,
-        guildId: pollEmbedMessage.channel.guild.id,
-        messageId: pollEmbedMessage.id,
-        options,
-        prompt,
-      });
     } catch (error) {
       console.error("Error saving new poll. ", error);
     }

@@ -24,10 +24,6 @@ const onMessage = (message) => {
   }
 };
 
-const onChangeReaction = async (reaction, username, action) => {
-  handleVote(reaction, username, action);
-};
-
 module.exports = {
   handleAddVote,
   handleRemoveVote,
