@@ -8,7 +8,15 @@ https://discord.com/developers
 Discord App Permissions:
 https://discordapi.com/permissions.html
 
-## .env
+### Notes
 
+"Client ID" and "Application ID" are synonymous.
+
+## Development
+
+### `.env`
+
+```
+BOT_APPLICATION_ID=xxx
 DISCORD_TOKEN=xxx
-NODE_ENV="production"|"development"
+```
